@@ -4,16 +4,23 @@ import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { PageLoader } from '@/components/ui/loader';
 import { formatINR } from '@/lib/utils';
 import type { ServiceCategory } from '@/lib/types';
 import { listCategoriesWithServices } from '@/services/categories.repo';
 
 export default function PricingPage() {
   const [categories, setCategories] = useState<ServiceCategory[]>([]);
+  const [loaded, setLoaded] = useState(false);
 
   useEffect(() => {
-    listCategoriesWithServices().then(setCategories);
+    listCategoriesWithServices().then((cats) => {
+      setCategories(cats);
+      setLoaded(true);
+    });
   }, []);
+
+  if (!loaded) return <PageLoader />;
 
   return (
     <div className="container py-16 sm:py-20">

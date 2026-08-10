@@ -9,6 +9,7 @@ import {
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
+import { PageLoader } from '@/components/ui/loader';
 import { LogoMark } from '@/components/logo';
 import { MehndiMotif } from '@/components/mehndi-motif';
 import { listCategoriesWithServices } from '@/services/categories.repo';
@@ -47,6 +48,8 @@ export default function HomePage() {
       },
     );
   }, []);
+
+  if (!loaded) return <PageLoader />;
 
   return (
     <>
@@ -117,25 +120,21 @@ export default function HomePage() {
           <h2 className="mt-3 font-serif text-3xl sm:text-4xl text-ivory">Signature Mehndi Styles</h2>
           <div className="gold-divider mt-4" />
           <div className="mt-14 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-            {!loaded
-              ? Array.from({ length: 6 }).map((_, i) => (
-                  <Card key={i} className="bg-forest-800/60 border-gold-300/20 text-left p-6 animate-pulse h-36" />
-                ))
-              : categories.map((cat) => {
-                  const prices = cat.services.flatMap((s) => s.pricingTiers.map((t) => t.price));
-                  return (
-                    <Card
-                      key={cat.id}
-                      className="bg-forest-800/60 border-gold-300/20 text-left p-6 hover:-translate-y-1 transition-transform"
-                    >
-                      <h3 className="font-serif text-xl text-ivory">{cat.name}</h3>
-                      <p className="mt-2 text-sm text-ivory/60 leading-relaxed">{cat.description}</p>
-                      {prices.length > 0 && (
-                        <p className="mt-4 text-gold-300 text-sm font-medium">From ₹{Math.min(...prices)}</p>
-                      )}
-                    </Card>
-                  );
-                })}
+            {categories.map((cat) => {
+              const prices = cat.services.flatMap((s) => s.pricingTiers.map((t) => t.price));
+              return (
+                <Card
+                  key={cat.id}
+                  className="bg-forest-800/60 border-gold-300/20 text-left p-6 hover:-translate-y-1 transition-transform"
+                >
+                  <h3 className="font-serif text-xl text-ivory">{cat.name}</h3>
+                  <p className="mt-2 text-sm text-ivory/60 leading-relaxed">{cat.description}</p>
+                  {prices.length > 0 && (
+                    <p className="mt-4 text-gold-300 text-sm font-medium">From ₹{Math.min(...prices)}</p>
+                  )}
+                </Card>
+              );
+            })}
           </div>
           <Link href="/services" className="inline-block mt-10">
             <Button variant="secondary">Explore All Services</Button>

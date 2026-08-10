@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { PageLoader } from '@/components/ui/loader';
 import { formatINR } from '@/lib/utils';
 import type { ServiceCategory } from '@/lib/types';
 import { listCategoriesWithServices } from '@/services/categories.repo';
@@ -19,6 +20,8 @@ export default function ServicesPage() {
     });
   }, []);
 
+  if (!loaded) return <PageLoader />;
+
   return (
     <div className="container py-16 sm:py-20">
       <div className="text-center max-w-2xl mx-auto">
@@ -29,7 +32,7 @@ export default function ServicesPage() {
         </p>
       </div>
 
-      {loaded && categories.length === 0 ? (
+      {categories.length === 0 ? (
         <p className="text-center mt-16 text-forest-700/60">
           Services are being updated. Please check back shortly or contact us on WhatsApp.
         </p>

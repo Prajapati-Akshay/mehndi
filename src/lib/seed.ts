@@ -5,7 +5,7 @@ import bcrypt from 'bcryptjs';
 import { db } from './db';
 import { uid, nowIso } from './utils';
 
-const SEED_VERSION = '1';
+const SEED_VERSION = '2';
 const ADMIN_EMAIL = 'admin@mehndibydhara.com';
 const ADMIN_PASSWORD = 'ChangeMe123!';
 
@@ -138,6 +138,16 @@ const GALLERY_ITEMS = [
   { title: 'Peacock Anklet Feet Design', category: 'feet-mehndi', imageUrl: '/gallery/feet-mandala-anklet.jpg' },
   { title: 'Traditional Elephant Design', category: 'indian-traditional', imageUrl: '/gallery/traditional-elephants-backhand.jpg' },
   { title: 'Peacock & Elephant Traditional', category: 'indian-traditional', imageUrl: '/gallery/traditional-peacock-elephant.jpg' },
+  ...Array.from({ length: 45 }, (_, i) => ({
+    title: `Mehndi Design ${i + 1}`,
+    category: null as string | null,
+    imageUrl: `/gallery/pdf-import/mehndi-pdf-p${i + 1}-${i + 1}.jpg`,
+  })),
+  ...Array.from({ length: 23 }, (_, i) => ({
+    title: `Mehandi Design ${i + 1}`,
+    category: null as string | null,
+    imageUrl: `/gallery/pdf-import/mehandi-pdf-p${i + 1}-${i + 1}.jpg`,
+  })),
 ];
 
 const SLOTS = ['10:00-11:00', '11:30-12:30', '14:00-15:00', '15:30-16:30', '17:00-18:00'];
@@ -257,14 +267,17 @@ export async function seedIfNeeded(): Promise<void> {
         }
       }
 
-      if ((await db.gallery.count()) === 0) {
-        for (const [index, item] of GALLERY_ITEMS.entries()) {
+      {
+        const existingUrls = new Set((await db.gallery.toArray()).map((g) => g.imageUrl));
+        let sortOrder = await db.gallery.count();
+        for (const item of GALLERY_ITEMS) {
+          if (existingUrls.has(item.imageUrl)) continue;
           await db.gallery.add({
             id: uid(),
             imageUrl: item.imageUrl,
             title: item.title,
             category: item.category,
-            sortOrder: index,
+            sortOrder: sortOrder++,
             isActive: true,
             createdAt: now,
             updatedAt: now,
