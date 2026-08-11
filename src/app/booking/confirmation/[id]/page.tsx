@@ -9,14 +9,33 @@ import { Button } from '@/components/ui/button';
 import { formatDate, formatINR } from '@/lib/utils';
 import { bookingWhatsappMessage, whatsappLink } from '@/lib/whatsapp';
 import type { Booking } from '@/lib/types';
-import { getBooking } from '@/services/bookings.repo';
+import { getBooking, getBookingHistory } from '@/services/bookings.repo';
+
+interface HistoryEntry {
+  id: string;
+  status: Booking['status'];
+  note: string | null;
+  createdAt: string;
+}
 
 export default function BookingConfirmationPage({ params }: { params: { id: string } }) {
   const [booking, setBooking] = useState<Booking | null | undefined>(undefined);
+  const [history, setHistory] = useState<HistoryEntry[]>([]);
 
   useEffect(() => {
     getBooking(params.id).then(setBooking);
+    getBookingHistory(params.id).then(setHistory).catch(() => setHistory([]));
   }, [params.id]);
+
+  useEffect(() => {
+    if (!booking) return;
+    const interval = setInterval(() => {
+      getBooking(params.id).then(setBooking);
+      getBookingHistory(params.id).then(setHistory).catch(() => undefined);
+    }, 15_000);
+    return () => clearInterval(interval);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [params.id, !!booking]);
 
   if (booking === undefined) {
     return <div className="container py-20 text-center text-forest-800/60">Loading…</div>;
@@ -111,8 +130,28 @@ export default function BookingConfirmationPage({ params }: { params: { id: stri
         </div>
       </Card>
 
+      {history.length > 0 && (
+        <Card className="mt-6 p-6 sm:p-8">
+          <p className="text-xs uppercase tracking-widest text-gold-500 font-medium mb-4">Status Updates</p>
+          <ul className="space-y-3">
+            {[...history].reverse().map((h) => (
+              <li key={h.id} className="flex items-start justify-between gap-4 text-sm">
+                <div className="min-w-0">
+                  <Badge status={h.status}>{h.status}</Badge>
+                  {h.note && <p className="mt-1 text-forest-800/70 break-words">{h.note}</p>}
+                </div>
+                <span className="shrink-0 text-xs text-forest-800/50">
+                  {new Date(h.createdAt).toLocaleString('en-IN')}
+                </span>
+              </li>
+            ))}
+          </ul>
+        </Card>
+      )}
+
       <p className="mt-6 text-center text-xs text-forest-800/50">
-        Save your Booking Number for reference. This is a standalone local demo — no SMS/email is actually sent.
+        Save your Booking Number for reference. We&rsquo;ll notify you by email as your booking status changes —
+        this page also updates automatically.
       </p>
     </div>
   );

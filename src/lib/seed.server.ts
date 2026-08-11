@@ -1,13 +1,11 @@
-// Seed data ported verbatim from apps/api/prisma/seed.ts. Runs once on first load,
-// guarded by a `seedVersion` flag in the `meta` table so it never re-seeds/overwrites
-// data a user has since edited.
+// Server-side seed for the Firestore-backed app. Runs once per project, guarded by a
+// `meta/seedVersion` doc, so it never re-seeds/overwrites data an admin has since edited.
+import type { Firestore } from 'firebase-admin/firestore';
 import bcrypt from 'bcryptjs';
-import { db } from './db';
-import { uid, nowIso } from './utils';
+import { SEED_ADMIN_EMAIL, SEED_ADMIN_PASSWORD } from './demo-credentials';
+import { nowIso } from './utils';
 
-const SEED_VERSION = '2';
-const ADMIN_EMAIL = 'admin@mehndibydhara.com';
-const ADMIN_PASSWORD = 'ChangeMe123!';
+const SEED_VERSION = '1';
 
 type TierInput = { lengthLabel: string; price: number; whatsIncluded: string };
 type ServiceInput = { name: string; description?: string; tiers: TierInput[] };
@@ -122,7 +120,7 @@ const TESTIMONIALS = [
   { customerName: 'Rina P.', message: 'Loved the traditional peacock design on my hands. Stain came out gorgeous.', rating: 5 },
 ];
 
-const GALLERY_ITEMS = [
+const GALLERY_ITEMS: { title: string; category: string | null; imageUrl: string }[] = [
   { title: 'Arabic Vine Forearm', category: 'arabic-mehndi', imageUrl: '/gallery/arabic-greenery-forearm.jpg' },
   { title: 'Arabic Floral Forearm', category: 'arabic-mehndi', imageUrl: '/gallery/arabic-outdoor-forearm.jpg' },
   { title: 'Bridal Geometric Elbow Design', category: 'bridal-mehndi', imageUrl: '/gallery/bridal-elbow-geometric.jpg' },
@@ -140,186 +138,120 @@ const GALLERY_ITEMS = [
   { title: 'Peacock & Elephant Traditional', category: 'indian-traditional', imageUrl: '/gallery/traditional-peacock-elephant.jpg' },
   ...Array.from({ length: 45 }, (_, i) => ({
     title: `Mehndi Design ${i + 1}`,
-    category: null as string | null,
+    category: null,
     imageUrl: `/gallery/pdf-import/mehndi-pdf-p${i + 1}-${i + 1}.jpg`,
   })),
   ...Array.from({ length: 23 }, (_, i) => ({
     title: `Mehandi Design ${i + 1}`,
-    category: null as string | null,
+    category: null,
     imageUrl: `/gallery/pdf-import/mehandi-pdf-p${i + 1}-${i + 1}.jpg`,
   })),
 ];
 
 const SLOTS = ['10:00-11:00', '11:30-12:30', '14:00-15:00', '15:30-16:30', '17:00-18:00'];
 
-function startOfDayIso(d: Date): string {
+function startOfDayIsoDate(d: Date): string {
   const copy = new Date(d);
   copy.setHours(0, 0, 0, 0);
   return copy.toISOString();
 }
 
-export async function seedIfNeeded(): Promise<void> {
-  const flag = await db.meta.get('seedVersion');
-  if (flag?.value === SEED_VERSION) return;
+export async function seedIfNeeded(db: Firestore): Promise<void> {
+  const metaRef = db.collection('meta').doc('seedVersion');
+  const flag = await metaRef.get();
+  if (flag.exists && flag.data()?.value === SEED_VERSION) return;
 
   const now = nowIso();
 
-  await db.transaction(
-    'rw',
-    [db.categories, db.services, db.pricing, db.users, db.availability, db.timeSlots, db.testimonials, db.gallery, db.meta],
-    async () => {
-      // Only seed each sub-area if empty, so re-running (e.g. schema bump) never clobbers edits.
-      if ((await db.categories.count()) === 0) {
-        for (const [catIndex, cat] of CATALOG.entries()) {
-          const categoryId = uid();
-          await db.categories.add({
-            id: categoryId,
-            slug: cat.slug,
-            name: cat.name,
-            description: cat.description,
-            sortOrder: catIndex,
-            isActive: true,
-            createdAt: now,
-            updatedAt: now,
-          });
+  if ((await db.collection('serviceCategories').limit(1).get()).empty) {
+    for (const [catIndex, cat] of CATALOG.entries()) {
+      const catRef = db.collection('serviceCategories').doc();
+      await catRef.set({
+        slug: cat.slug,
+        name: cat.name,
+        description: cat.description,
+        sortOrder: catIndex,
+        isActive: true,
+        createdAt: now,
+        updatedAt: now,
+      });
 
-          for (const [svcIndex, svc] of cat.services.entries()) {
-            const serviceId = uid();
-            await db.services.add({
-              id: serviceId,
-              categoryId,
-              name: svc.name,
-              description: svc.description ?? null,
-              isActive: true,
-              sortOrder: svcIndex,
-              createdAt: now,
-              updatedAt: now,
-            });
-
-            for (const [tierIndex, tier] of svc.tiers.entries()) {
-              await db.pricing.add({
-                id: uid(),
-                serviceId,
-                lengthLabel: tier.lengthLabel,
-                price: tier.price,
-                whatsIncluded: tier.whatsIncluded,
-                sortOrder: tierIndex,
-                isActive: true,
-                createdAt: now,
-                updatedAt: now,
-              });
-            }
-          }
-        }
-      }
-
-      if ((await db.users.where('email').equals(ADMIN_EMAIL).count()) === 0) {
-        const passwordHash = bcrypt.hashSync(ADMIN_PASSWORD, 10);
-        await db.users.add({
-          id: uid(),
-          email: ADMIN_EMAIL,
-          passwordHash,
-          name: 'Dhara',
-          role: 'ADMIN',
+      for (const [svcIndex, svc] of cat.services.entries()) {
+        const svcRef = db.collection('services').doc();
+        await svcRef.set({
+          categoryId: catRef.id,
+          name: svc.name,
+          description: svc.description ?? null,
+          isActive: true,
+          sortOrder: svcIndex,
           createdAt: now,
           updatedAt: now,
         });
-      }
 
-      if ((await db.availability.count()) === 0) {
-        const today = new Date();
-        for (let i = 1; i <= 14; i++) {
-          const date = new Date(today);
-          date.setDate(today.getDate() + i);
-          const availabilityId = uid();
-          await db.availability.add({
-            id: availabilityId,
-            date: startOfDayIso(date),
-            isAvailable: true,
-            note: null,
-            createdAt: now,
-            updatedAt: now,
-          });
-          for (const slot of SLOTS) {
-            const [startTime, endTime] = slot.split('-');
-            await db.timeSlots.add({
-              id: uid(),
-              availabilityId,
-              startTime,
-              endTime,
-              isBooked: false,
-            });
-          }
-        }
-      }
-
-      if ((await db.testimonials.count()) === 0) {
-        for (const t of TESTIMONIALS) {
-          await db.testimonials.add({
-            id: uid(),
-            customerName: t.customerName,
-            message: t.message,
-            rating: t.rating,
+        for (const [tierIndex, tier] of svc.tiers.entries()) {
+          await db.collection('servicePricing').doc().set({
+            serviceId: svcRef.id,
+            lengthLabel: tier.lengthLabel,
+            price: tier.price,
+            whatsIncluded: tier.whatsIncluded,
+            sortOrder: tierIndex,
             isActive: true,
             createdAt: now,
             updatedAt: now,
           });
         }
       }
+    }
+  }
 
-      {
-        const existingUrls = new Set((await db.gallery.toArray()).map((g) => g.imageUrl));
-        let sortOrder = await db.gallery.count();
-        for (const item of GALLERY_ITEMS) {
-          if (existingUrls.has(item.imageUrl)) continue;
-          await db.gallery.add({
-            id: uid(),
-            imageUrl: item.imageUrl,
-            title: item.title,
-            category: item.category,
-            sortOrder: sortOrder++,
-            isActive: true,
-            createdAt: now,
-            updatedAt: now,
-          });
-        }
+  const adminRef = db.collection('users').doc(SEED_ADMIN_EMAIL);
+  if (!(await adminRef.get()).exists) {
+    await adminRef.set({
+      email: SEED_ADMIN_EMAIL,
+      passwordHash: bcrypt.hashSync(SEED_ADMIN_PASSWORD, 10),
+      name: 'Dhara',
+      phone: null,
+      role: 'ADMIN',
+      createdAt: now,
+      updatedAt: now,
+    });
+  }
+
+  if ((await db.collection('availability').limit(1).get()).empty) {
+    const today = new Date();
+    for (let i = 1; i <= 14; i++) {
+      const date = new Date(today);
+      date.setDate(today.getDate() + i);
+      const iso = startOfDayIsoDate(date);
+      const availRef = db.collection('availability').doc(iso);
+      await availRef.set({ date: iso, isAvailable: true, note: null, createdAt: now, updatedAt: now });
+      for (const slot of SLOTS) {
+        const [startTime, endTime] = slot.split('-');
+        await db.collection('timeSlots').doc().set({
+          availabilityId: availRef.id,
+          startTime,
+          endTime,
+          isBooked: false,
+        });
       }
+    }
+  }
 
-      await db.meta.put({ key: 'seedVersion', value: SEED_VERSION });
-    },
-  );
+  if ((await db.collection('testimonials').limit(1).get()).empty) {
+    for (const t of TESTIMONIALS) {
+      await db.collection('testimonials').doc().set({ ...t, isActive: true, createdAt: now, updatedAt: now });
+    }
+  }
+
+  const existingGallery = await db.collection('galleryItems').select('imageUrl').get();
+  const existingUrls = new Set(existingGallery.docs.map((d) => d.data().imageUrl as string));
+  const missingGalleryItems = GALLERY_ITEMS.filter((item) => !existingUrls.has(item.imageUrl));
+  if (missingGalleryItems.length > 0) {
+    let sortOrder = existingGallery.size;
+    for (const item of missingGalleryItems) {
+      await db.collection('galleryItems').doc().set({ ...item, sortOrder: sortOrder++, isActive: true, createdAt: now, updatedAt: now });
+    }
+  }
+
+  await metaRef.set({ value: SEED_VERSION });
 }
-
-/** Wipes ALL local data and reseeds from scratch (used by the admin "Reset Local Data" action). */
-export async function resetAndReseed(): Promise<void> {
-  await db.transaction(
-    'rw',
-    [
-      db.categories, db.services, db.pricing, db.availability, db.timeSlots,
-      db.customers, db.bookings, db.statusHistory, db.payments,
-      db.testimonials, db.gallery, db.contactMessages, db.users, db.meta,
-    ],
-    async () => {
-      await Promise.all([
-        db.categories.clear(),
-        db.services.clear(),
-        db.pricing.clear(),
-        db.availability.clear(),
-        db.timeSlots.clear(),
-        db.customers.clear(),
-        db.bookings.clear(),
-        db.statusHistory.clear(),
-        db.payments.clear(),
-        db.testimonials.clear(),
-        db.gallery.clear(),
-        db.contactMessages.clear(),
-        db.users.clear(),
-        db.meta.clear(),
-      ]);
-    },
-  );
-  await seedIfNeeded();
-}
-
-export const SEED_ADMIN_EMAIL = ADMIN_EMAIL;
-export const SEED_ADMIN_PASSWORD = ADMIN_PASSWORD;

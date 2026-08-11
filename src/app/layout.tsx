@@ -3,7 +3,8 @@ import { Playfair_Display, Inter } from 'next/font/google';
 import { Header } from '@/components/header';
 import { Footer } from '@/components/footer';
 import { WhatsAppFloat } from '@/components/whatsapp-float';
-import { SeedProvider } from '@/components/seed-provider';
+import { PostHogProvider } from '@/components/posthog-provider';
+import { PostHogPageView } from '@/components/posthog-pageview';
 import './globals.css';
 
 const heading = Playfair_Display({
@@ -24,19 +25,20 @@ export const metadata: Metadata = {
     template: '%s | Mehndi By Dhara',
   },
   description:
-    'Standalone, backend-free demo of the Mehndi By Dhara booking site. Book beautiful Arabic, Bridal, Engagement, Designer and Traditional Mehndi — all data stored locally in your browser.',
+    'Book beautiful Arabic, Bridal, Engagement, Designer and Traditional Mehndi with Mehndi By Dhara.',
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en" className={`${heading.variable} ${body.variable}`}>
       <body className="font-sans antialiased">
-        <SeedProvider>
+        <PostHogProvider>
+          <PostHogPageView />
           <Header />
           <main>{children}</main>
           <Footer />
           <WhatsAppFloat />
-        </SeedProvider>
+        </PostHogProvider>
       </body>
     </html>
   );

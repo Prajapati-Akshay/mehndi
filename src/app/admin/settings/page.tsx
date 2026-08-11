@@ -4,8 +4,6 @@ import { useRef, useState } from 'react';
 import { AdminShell } from '@/components/admin/admin-shell';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { db, ALL_TABLES } from '@/lib/db';
-import { resetAndReseed } from '@/lib/seed';
 
 export default function AdminSettingsPage() {
   const fileRef = useRef<HTMLInputElement>(null);
@@ -18,13 +16,10 @@ export default function AdminSettingsPage() {
     setError('');
     setMessage('');
     try {
-      const dump: Record<string, unknown[]> = {};
-      for (const table of ALL_TABLES) {
-        dump[table] = await (db as any)[table].toArray();
-      }
-      const blob = new Blob([JSON.stringify({ version: 1, exportedAt: new Date().toISOString(), data: dump }, null, 2)], {
-        type: 'application/json',
-      });
+      const res = await fetch('/api/admin/export');
+      if (!res.ok) throw new Error('Export failed.');
+      const dump = await res.json();
+      const blob = new Blob([JSON.stringify(dump, null, 2)], { type: 'application/json' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
@@ -45,17 +40,16 @@ export default function AdminSettingsPage() {
     setMessage('');
     try {
       const text = await file.text();
-      const parsed = JSON.parse(text) as { data?: Record<string, unknown[]> };
-      if (!parsed.data) throw new Error('Invalid backup file: missing "data" object.');
-
-      await db.transaction('rw', ALL_TABLES.map((t) => (db as any)[t]), async () => {
-        for (const table of ALL_TABLES) {
-          const rows = parsed.data?.[table];
-          if (!Array.isArray(rows)) continue;
-          await (db as any)[table].clear();
-          if (rows.length > 0) await (db as any)[table].bulkAdd(rows);
-        }
+      const parsed = JSON.parse(text);
+      const res = await fetch('/api/admin/import', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(parsed),
       });
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        throw new Error(body.error ?? 'Import failed.');
+      }
       setMessage('Data imported successfully. Reload the page to see all changes reflected everywhere.');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Import failed. Make sure the file is a valid export.');
@@ -66,7 +60,7 @@ export default function AdminSettingsPage() {
   }
 
   async function handleReset() {
-    if (!confirm('This will permanently delete ALL local data (bookings, customers, custom pricing, etc.) and reseed the original demo catalog. Continue?')) {
+    if (!confirm('This will permanently delete ALL data (bookings, customers, custom pricing, etc.) for every admin/device and reseed the original demo catalog. Continue?')) {
       return;
     }
     if (!confirm('Are you absolutely sure? This cannot be undone.')) return;
@@ -74,8 +68,9 @@ export default function AdminSettingsPage() {
     setError('');
     setMessage('');
     try {
-      await resetAndReseed();
-      setMessage('Local data has been reset to the original seed. Reload the page to see the changes.');
+      const res = await fetch('/api/admin/reset', { method: 'POST' });
+      if (!res.ok) throw new Error('Reset failed.');
+      setMessage('Data has been reset to the original seed. Reload the page to see the changes.');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Reset failed.');
     } finally {
@@ -125,13 +120,13 @@ export default function AdminSettingsPage() {
       </Card>
 
       <Card className="mt-6 p-6 border-rose-200">
-        <h2 className="font-medium text-rose-700">Reset Local Data</h2>
+        <h2 className="font-medium text-rose-700">Reset All Data</h2>
         <p className="mt-1 text-sm text-forest-800/60">
-          Permanently wipes everything stored in this browser and reseeds the original demo catalog (services,
-          pricing, gallery, testimonials, availability, admin login). This cannot be undone.
+          Permanently wipes the shared database and reseeds the original demo catalog (services, pricing, gallery,
+          testimonials, availability, admin login). This affects every admin/device. This cannot be undone.
         </p>
         <Button variant="outline" className="mt-4 border-rose-400 text-rose-700 hover:bg-rose-600 hover:text-white" onClick={handleReset} disabled={busy}>
-          Reset Local Data
+          Reset All Data
         </Button>
       </Card>
     </AdminShell>

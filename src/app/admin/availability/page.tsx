@@ -64,23 +64,23 @@ export default function AdminAvailabilityPage() {
       <h1 className="font-serif text-2xl text-forest-900">Availability</h1>
       <p className="text-sm text-forest-800/60 mt-1">Control which dates and time slots are open for booking.</p>
 
-      <Card className="mt-6 p-6">
+      <Card className="mt-6 p-6 overflow-hidden">
         <h2 className="font-medium text-forest-900 mb-4">Add / Update a Date</h2>
-        <form onSubmit={handleCreate} className="grid sm:grid-cols-2 gap-3">
+        <form onSubmit={handleCreate} className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <input
             required
             type="date"
             value={form.date}
             onChange={(e) => setForm({ ...form, date: e.target.value })}
-            className="rounded-xl border border-gold-200 px-3 py-2 text-sm"
+            className="w-full min-w-0 max-w-full rounded-xl border border-gold-200 px-3 py-2 text-sm"
           />
           <input
             value={form.timeSlots}
             onChange={(e) => setForm({ ...form, timeSlots: e.target.value })}
             placeholder="10:00-11:00, 11:30-12:30"
-            className="rounded-xl border border-gold-200 px-3 py-2 text-sm"
+            className="w-full min-w-0 max-w-full rounded-xl border border-gold-200 px-3 py-2 text-sm"
           />
-          <Button type="submit" disabled={creating} className="sm:col-span-2 justify-self-start">
+          <Button type="submit" disabled={creating} className="col-span-1 sm:col-span-2 justify-self-start">
             {creating ? 'Saving…' : 'Save Availability'}
           </Button>
         </form>

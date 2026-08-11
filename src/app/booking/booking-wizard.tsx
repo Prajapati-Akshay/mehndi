@@ -8,7 +8,7 @@ import { Card } from '@/components/ui/card';
 import { formatINR } from '@/lib/utils';
 import type { Availability, ServiceCategory, PricingTier, Service } from '@/lib/types';
 import { listAvailability } from '@/services/availability.repo';
-import { createBooking, BookingConflictError, BookingValidationError } from '@/domain/booking';
+import { createBooking, BookingConflictError, BookingValidationError } from '@/services/bookings.repo';
 import { calculateBookingAmounts } from '@/domain/pricing';
 
 const STEPS = ['Service', 'Package', 'People', 'Date & Time', 'Your Details', 'Summary'];

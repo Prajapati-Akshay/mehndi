@@ -7,8 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { formatDate, formatINR } from '@/lib/utils';
 import type { Booking, BookingStatus } from '@/lib/types';
-import { listBookings } from '@/services/bookings.repo';
-import { updateBookingStatus, deleteBooking } from '@/domain/booking';
+import { listBookings, updateBookingStatus, deleteBooking } from '@/services/bookings.repo';
 
 const STATUSES = ['ALL', 'PENDING', 'CONFIRMED', 'REJECTED', 'CANCELLED', 'COMPLETED'] as const;
 
@@ -25,6 +24,8 @@ export default function AdminBookingsPage() {
   const [filter, setFilter] = useState<(typeof STATUSES)[number]>('ALL');
   const [loading, setLoading] = useState(true);
   const [busyId, setBusyId] = useState<string | null>(null);
+  const [rejectingId, setRejectingId] = useState<string | null>(null);
+  const [rejectReason, setRejectReason] = useState('');
 
   async function load() {
     setLoading(true);
@@ -41,10 +42,12 @@ export default function AdminBookingsPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filter]);
 
-  async function updateStatus(id: string, status: BookingStatus) {
+  async function updateStatus(id: string, status: BookingStatus, note?: string) {
     setBusyId(id);
     try {
-      await updateBookingStatus(id, status);
+      await updateBookingStatus(id, status, note);
+      setRejectingId(null);
+      setRejectReason('');
       await load();
     } finally {
       setBusyId(null);
@@ -106,22 +109,56 @@ export default function AdminBookingsPage() {
                 <p className="text-xs text-forest-800/50">Advance {formatINR(b.advanceAmount)}</p>
               </div>
             </div>
-            <div className="mt-4 flex flex-wrap gap-2">
-              {TRANSITIONS[b.status]?.map((next) => (
-                <Button
-                  key={next}
-                  size="sm"
-                  variant={next === 'REJECTED' || next === 'CANCELLED' ? 'outline' : 'primary'}
-                  disabled={busyId === b.id}
-                  onClick={() => updateStatus(b.id, next)}
-                >
-                  Mark {next.charAt(0) + next.slice(1).toLowerCase()}
+            {rejectingId === b.id ? (
+              <div className="mt-4 min-w-0">
+                <label className="text-xs font-medium text-forest-900">Reason for rejection (optional)</label>
+                <textarea
+                  value={rejectReason}
+                  onChange={(e) => setRejectReason(e.target.value)}
+                  rows={2}
+                  className="mt-1 w-full max-w-full min-w-0 rounded-xl border border-gold-200 px-3 py-2 text-sm"
+                  placeholder="e.g. Fully booked on this date"
+                />
+                <div className="mt-2 flex flex-wrap gap-2">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    disabled={busyId === b.id}
+                    onClick={() => updateStatus(b.id, 'REJECTED', rejectReason || undefined)}
+                  >
+                    Confirm Rejection
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    disabled={busyId === b.id}
+                    onClick={() => {
+                      setRejectingId(null);
+                      setRejectReason('');
+                    }}
+                  >
+                    Cancel
+                  </Button>
+                </div>
+              </div>
+            ) : (
+              <div className="mt-4 flex flex-wrap gap-2">
+                {TRANSITIONS[b.status]?.map((next) => (
+                  <Button
+                    key={next}
+                    size="sm"
+                    variant={next === 'REJECTED' || next === 'CANCELLED' ? 'outline' : 'primary'}
+                    disabled={busyId === b.id}
+                    onClick={() => (next === 'REJECTED' ? setRejectingId(b.id) : updateStatus(b.id, next))}
+                  >
+                    Mark {next.charAt(0) + next.slice(1).toLowerCase()}
+                  </Button>
+                ))}
+                <Button size="sm" variant="ghost" disabled={busyId === b.id} onClick={() => remove(b.id)}>
+                  Delete
                 </Button>
-              ))}
-              <Button size="sm" variant="ghost" disabled={busyId === b.id} onClick={() => remove(b.id)}>
-                Delete
-              </Button>
-            </div>
+              </div>
+            )}
           </Card>
         ))}
       </div>

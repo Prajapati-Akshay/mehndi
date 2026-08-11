@@ -1,18 +1,22 @@
-import { db } from '@/lib/db';
 import type { DBCustomer } from '@/lib/types';
+import { apiErrorFromCode } from '@/lib/errors';
 
 export async function listCustomers(): Promise<DBCustomer[]> {
-  return db.customers.orderBy('fullName').toArray();
+  const res = await fetch('/api/customers', { cache: 'no-store' });
+  const { customers } = await res.json();
+  return customers;
 }
 
 export async function getCustomer(id: string): Promise<DBCustomer | undefined> {
-  return db.customers.get(id);
+  const res = await fetch(`/api/customers/${id}`, { cache: 'no-store' });
+  const { customer } = await res.json();
+  return customer ?? undefined;
 }
 
 export async function deleteCustomer(id: string): Promise<void> {
-  const hasBookings = await db.bookings.where('customerId').equals(id).count();
-  if (hasBookings > 0) {
-    throw new Error('Cannot delete a customer that has bookings. Delete their bookings first.');
+  const res = await fetch(`/api/customers/${id}`, { method: 'DELETE' });
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}));
+    throw apiErrorFromCode(body.code, body.error ?? 'Could not delete customer.');
   }
-  await db.customers.delete(id);
 }

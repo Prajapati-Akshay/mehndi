@@ -1,13 +1,15 @@
-import { db } from '@/lib/db';
-import { uid, nowIso } from '@/lib/utils';
 import type { DBServicePricing } from '@/lib/types';
 
 export async function listPricing(): Promise<DBServicePricing[]> {
-  return db.pricing.orderBy('sortOrder').toArray();
+  const res = await fetch('/api/pricing', { cache: 'no-store' });
+  const { pricing } = await res.json();
+  return pricing;
 }
 
 export async function listPricingByService(serviceId: string): Promise<DBServicePricing[]> {
-  return db.pricing.where('serviceId').equals(serviceId).sortBy('sortOrder');
+  const res = await fetch(`/api/pricing?serviceId=${serviceId}`, { cache: 'no-store' });
+  const { pricing } = await res.json();
+  return pricing;
 }
 
 export async function createPricing(input: {
@@ -16,27 +18,23 @@ export async function createPricing(input: {
   price: number;
   whatsIncluded: string;
 }): Promise<DBServicePricing> {
-  const now = nowIso();
-  const count = await db.pricing.where('serviceId').equals(input.serviceId).count();
-  const tier: DBServicePricing = {
-    id: uid(),
-    serviceId: input.serviceId,
-    lengthLabel: input.lengthLabel,
-    price: input.price,
-    whatsIncluded: input.whatsIncluded,
-    sortOrder: count,
-    isActive: true,
-    createdAt: now,
-    updatedAt: now,
-  };
-  await db.pricing.add(tier);
-  return tier;
+  const res = await fetch('/api/pricing', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(input),
+  });
+  const { pricing } = await res.json();
+  return pricing;
 }
 
 export async function updatePricing(id: string, patch: Partial<Omit<DBServicePricing, 'id'>>): Promise<void> {
-  await db.pricing.update(id, { ...patch, updatedAt: nowIso() });
+  await fetch(`/api/pricing/${id}`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(patch),
+  });
 }
 
 export async function deletePricing(id: string): Promise<void> {
-  await db.pricing.delete(id);
+  await fetch(`/api/pricing/${id}`, { method: 'DELETE' });
 }

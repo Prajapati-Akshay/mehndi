@@ -1,29 +1,29 @@
-import { db } from '@/lib/db';
-import { uid, nowIso } from '@/lib/utils';
 import type { DBContactMessage } from '@/lib/types';
 
 export async function createContactMessage(input: { name: string; email?: string | null; phone?: string | null; message: string }): Promise<DBContactMessage> {
-  const item: DBContactMessage = {
-    id: uid(),
-    name: input.name,
-    email: input.email ?? null,
-    phone: input.phone ?? null,
-    message: input.message,
-    isRead: false,
-    createdAt: nowIso(),
-  };
-  await db.contactMessages.add(item);
-  return item;
+  const res = await fetch('/api/contact', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(input),
+  });
+  const { message } = await res.json();
+  return message;
 }
 
 export async function listContactMessages(): Promise<DBContactMessage[]> {
-  return db.contactMessages.orderBy('createdAt').reverse().toArray();
+  const res = await fetch('/api/contact', { cache: 'no-store' });
+  const { messages } = await res.json();
+  return messages;
 }
 
 export async function markContactMessageRead(id: string, isRead = true): Promise<void> {
-  await db.contactMessages.update(id, { isRead });
+  await fetch(`/api/contact/${id}`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ isRead }),
+  });
 }
 
 export async function deleteContactMessage(id: string): Promise<void> {
-  await db.contactMessages.delete(id);
+  await fetch(`/api/contact/${id}`, { method: 'DELETE' });
 }

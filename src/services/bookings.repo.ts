@@ -1,86 +1,77 @@
-import { db } from '@/lib/db';
-import type { Booking, DBBooking, BookingStatus } from '@/lib/types';
+import type { Booking, BookingStatus } from '@/lib/types';
+import { apiErrorFromCode, BookingConflictError, BookingValidationError } from '@/lib/errors';
 
-export async function hydrateBooking(b: DBBooking): Promise<Booking | null> {
-  const [customer, service, pricing] = await Promise.all([
-    db.customers.get(b.customerId),
-    db.services.get(b.serviceId),
-    db.pricing.get(b.pricingId),
-  ]);
-  if (!customer || !service || !pricing) return null;
-  const category = await db.categories.get(service.categoryId);
-  if (!category) return null;
+export { BookingConflictError, BookingValidationError };
 
-  return {
-    id: b.id,
-    bookingNumber: b.bookingNumber,
-    status: b.status,
-    appointmentDate: b.appointmentDate,
-    appointmentTime: b.appointmentTime,
-    eventType: b.eventType,
-    numberOfPeople: b.numberOfPeople,
-    notes: b.notes,
-    pricePerPerson: b.pricePerPerson,
-    totalAmount: b.totalAmount,
-    advanceAmount: b.advanceAmount,
-    remainingAmount: b.remainingAmount,
-    createdAt: b.createdAt,
-    customer: {
-      id: customer.id,
-      fullName: customer.fullName,
-      phone: customer.phone,
-      whatsappNumber: customer.whatsappNumber,
-      email: customer.email,
-      address: customer.address,
-    },
-    pricing: {
-      id: pricing.id,
-      lengthLabel: pricing.lengthLabel,
-      price: pricing.price,
-      whatsIncluded: pricing.whatsIncluded,
-      sortOrder: pricing.sortOrder,
-      isActive: pricing.isActive,
-    },
-    service: {
-      id: service.id,
-      name: service.name,
-      category: { id: category.id, name: category.name, slug: category.slug },
-    },
-  };
+async function parseOrThrow(res: Response) {
+  if (res.ok) return res.json();
+  const body = await res.json().catch(() => ({}));
+  throw apiErrorFromCode(body.code, body.error ?? 'Something went wrong');
 }
 
 export async function listBookings(status?: BookingStatus): Promise<Booking[]> {
-  const rows = status
-    ? await db.bookings.where('status').equals(status).toArray()
-    : await db.bookings.toArray();
-  rows.sort((a, b) => b.createdAt.localeCompare(a.createdAt));
-  const out: Booking[] = [];
-  for (const r of rows) {
-    const hydrated = await hydrateBooking(r);
-    if (hydrated) out.push(hydrated);
-  }
-  return out;
+  const qs = status ? `?status=${status}` : '';
+  const res = await fetch(`/api/bookings${qs}`, { cache: 'no-store' });
+  const { bookings } = await parseOrThrow(res);
+  return bookings;
 }
 
 export async function getBooking(idOrNumber: string): Promise<Booking | null> {
-  let row = await db.bookings.get(idOrNumber);
-  if (!row) {
-    row = await db.bookings.where('bookingNumber').equals(idOrNumber).first();
-  }
-  if (!row) return null;
-  return hydrateBooking(row);
+  const res = await fetch(`/api/bookings/${idOrNumber}`, { cache: 'no-store' });
+  const { booking } = await parseOrThrow(res);
+  return booking;
 }
 
 export async function getBookingHistory(bookingId: string) {
-  return db.statusHistory.where('bookingId').equals(bookingId).sortBy('createdAt');
+  const res = await fetch(`/api/bookings/${bookingId}/history`, { cache: 'no-store' });
+  const { history } = await parseOrThrow(res);
+  return history;
 }
 
 export async function listBookingsForCustomer(customerId: string): Promise<Booking[]> {
-  const rows = await db.bookings.where('customerId').equals(customerId).toArray();
-  const out: Booking[] = [];
-  for (const r of rows) {
-    const hydrated = await hydrateBooking(r);
-    if (hydrated) out.push(hydrated);
-  }
-  return out;
+  const res = await fetch(`/api/bookings/customer/${customerId}`, { cache: 'no-store' });
+  const { bookings } = await parseOrThrow(res);
+  return bookings;
+}
+
+export interface CreateBookingInput {
+  fullName: string;
+  phoneNumber: string;
+  whatsappNumber: string;
+  email?: string | null;
+  address?: string | null;
+  serviceId: string;
+  pricingId: string;
+  timeSlotId?: string | null;
+  appointmentDate: string;
+  appointmentTime: string;
+  eventType?: string | null;
+  numberOfPeople: number;
+  notes?: string | null;
+  termsAccepted: boolean;
+}
+
+export async function createBooking(input: CreateBookingInput): Promise<Booking> {
+  const res = await fetch('/api/bookings', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(input),
+  });
+  const { booking } = await parseOrThrow(res);
+  return booking;
+}
+
+export async function updateBookingStatus(id: string, status: BookingStatus, note?: string | null): Promise<Booking> {
+  const res = await fetch(`/api/bookings/${id}`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ status, note }),
+  });
+  const { booking } = await parseOrThrow(res);
+  return booking;
+}
+
+export async function deleteBooking(id: string): Promise<void> {
+  const res = await fetch(`/api/bookings/${id}`, { method: 'DELETE' });
+  await parseOrThrow(res);
 }

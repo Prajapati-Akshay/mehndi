@@ -1,40 +1,38 @@
 'use client';
 
-// Lightweight local-session simulation: checks email + bcrypt-compares password against the
-// seeded admin's hash in Dexie, stores a session flag in localStorage. There is no real JWT
-// or network call — this is a FE-only demo and is NOT secure (see README limitations).
-import bcrypt from 'bcryptjs';
-import { db } from './db';
-
-const SESSION_KEY = 'mbd_admin_session';
+// Real server-backed session: an httpOnly cookie set by /api/auth/login, validated against
+// the Session table on every /api/auth/me call. Replaces the old localStorage-only fake
+// session so the same admin login works consistently from any browser/device.
 
 export interface AdminUser {
   id: string;
   email: string;
   name: string;
+  phone: string | null;
   role: string;
 }
 
-export function getSession(): AdminUser | null {
-  if (typeof window === 'undefined') return null;
-  const raw = window.localStorage.getItem(SESSION_KEY);
-  return raw ? (JSON.parse(raw) as AdminUser) : null;
+export async function getSession(): Promise<AdminUser | null> {
+  const res = await fetch('/api/auth/me', { cache: 'no-store' });
+  if (!res.ok) return null;
+  const { user } = await res.json();
+  return user as AdminUser;
 }
 
-export function clearSession() {
-  window.localStorage.removeItem(SESSION_KEY);
-}
-
-function setSession(user: AdminUser) {
-  window.localStorage.setItem(SESSION_KEY, JSON.stringify(user));
+export async function clearSession(): Promise<void> {
+  await fetch('/api/auth/logout', { method: 'POST' });
 }
 
 export async function login(email: string, password: string): Promise<AdminUser> {
-  const user = await db.users.where('email').equalsIgnoreCase(email).first();
-  if (!user) throw new Error('Invalid email or password');
-  const ok = bcrypt.compareSync(password, user.passwordHash);
-  if (!ok) throw new Error('Invalid email or password');
-  const session: AdminUser = { id: user.id, email: user.email, name: user.name, role: user.role };
-  setSession(session);
-  return session;
+  const res = await fetch('/api/auth/login', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email, password }),
+  });
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}));
+    throw new Error(body.error ?? 'Invalid email or password');
+  }
+  const { user } = await res.json();
+  return user as AdminUser;
 }

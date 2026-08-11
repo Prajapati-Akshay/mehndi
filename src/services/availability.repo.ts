@@ -1,65 +1,62 @@
-import { db } from '@/lib/db';
-import { uid, nowIso } from '@/lib/utils';
-import type { Availability, DBAvailability } from '@/lib/types';
-import { DEFAULT_SLOTS, startOfDayIso } from '@/domain/availability';
-
-async function hydrate(a: DBAvailability): Promise<Availability> {
-  const slots = await db.timeSlots.where('availabilityId').equals(a.id).toArray();
-  return {
-    id: a.id,
-    date: a.date,
-    isAvailable: a.isAvailable,
-    timeSlots: slots.map((s) => ({ id: s.id, startTime: s.startTime, endTime: s.endTime, isBooked: s.isBooked })),
-  };
-}
+import type { Availability } from '@/lib/types';
 
 export async function listAvailability(): Promise<Availability[]> {
-  const rows = await db.availability.orderBy('date').toArray();
-  return Promise.all(rows.map(hydrate));
+  const res = await fetch('/api/availability', { cache: 'no-store' });
+  const { availability } = await res.json();
+  return availability;
 }
 
 export async function getAvailabilityByDate(date: string): Promise<Availability | null> {
-  const iso = startOfDayIso(date);
-  const row = await db.availability.where('date').equals(iso).first();
-  if (!row) return null;
-  return hydrate(row);
+  const all = await listAvailability();
+  return all.find((a) => new Date(a.date).toISOString().split('T')[0] === new Date(date).toISOString().split('T')[0]) ?? null;
 }
 
 export async function ensureAvailability(date: string): Promise<Availability> {
-  const iso = startOfDayIso(date);
-  let row = await db.availability.where('date').equals(iso).first();
-  const now = nowIso();
-  if (!row) {
-    row = { id: uid(), date: iso, isAvailable: true, note: null, createdAt: now, updatedAt: now };
-    await db.availability.add(row);
-    for (const slot of DEFAULT_SLOTS) {
-      await db.timeSlots.add({ id: uid(), availabilityId: row.id, ...slot, isBooked: false });
-    }
-  }
-  return hydrate(row);
+  const res = await fetch('/api/availability', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ date }),
+  });
+  const { availability } = await res.json();
+  return availability;
 }
 
 export async function setAvailabilityOpen(id: string, isAvailable: boolean, note?: string | null): Promise<void> {
-  await db.availability.update(id, { isAvailable, note: note ?? null, updatedAt: nowIso() });
+  await fetch(`/api/availability/${id}`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ isAvailable, note: note ?? null }),
+  });
 }
 
 export async function addTimeSlot(availabilityId: string, startTime: string, endTime: string): Promise<void> {
-  await db.timeSlots.add({ id: uid(), availabilityId, startTime, endTime, isBooked: false });
+  await fetch(`/api/availability/${availabilityId}/slots`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ startTime, endTime }),
+  });
 }
 
 export async function updateTimeSlot(id: string, patch: { startTime?: string; endTime?: string }): Promise<void> {
-  await db.timeSlots.update(id, patch);
+  await fetch(`/api/timeslots/${id}`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(patch),
+  });
 }
 
 export async function toggleTimeSlotBooked(id: string, isBooked: boolean): Promise<void> {
-  await db.timeSlots.update(id, { isBooked });
+  await fetch(`/api/timeslots/${id}`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ isBooked }),
+  });
 }
 
 export async function deleteTimeSlot(id: string): Promise<void> {
-  await db.timeSlots.delete(id);
+  await fetch(`/api/timeslots/${id}`, { method: 'DELETE' });
 }
 
 export async function deleteAvailability(id: string): Promise<void> {
-  await db.timeSlots.where('availabilityId').equals(id).delete();
-  await db.availability.delete(id);
+  await fetch(`/api/availability/${id}`, { method: 'DELETE' });
 }

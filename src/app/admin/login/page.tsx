@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { LogoMark } from '@/components/logo';
 import { getSession, login } from '@/lib/auth';
-import { SEED_ADMIN_EMAIL, SEED_ADMIN_PASSWORD } from '@/lib/seed';
+import { SEED_ADMIN_EMAIL, SEED_ADMIN_PASSWORD } from '@/lib/demo-credentials';
 
 export default function AdminLoginPage() {
   const router = useRouter();
@@ -16,7 +16,9 @@ export default function AdminLoginPage() {
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    if (getSession()) router.replace('/admin/dashboard');
+    getSession().then((session) => {
+      if (session) router.replace('/admin/dashboard');
+    });
   }, [router]);
 
   async function handleSubmit(e: React.FormEvent) {

@@ -16,9 +16,10 @@
     "clsx": "^2.1.1",
     "tailwind-merge": "^2.5.2",
     "date-fns": "^3.6.0",
-    "dexie": "^4.0.8",
-    "dexie-react-hooks": "^1.1.7",
-    "bcryptjs": "^2.4.3"
+    "firebase-admin": "^12.6.0",
+    "bcryptjs": "^2.4.3",
+    "resend": "^4.0.0",
+    "posthog-js": "^1.415.4"
   },
   "devDependencies": {
     "@types/node": "^20.14.0",

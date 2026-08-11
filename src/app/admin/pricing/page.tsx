@@ -95,24 +95,43 @@ export default function AdminPricingPage() {
       <h1 className="font-serif text-2xl text-forest-900">Pricing</h1>
       <p className="text-sm text-forest-800/60 mt-1">Manage price tiers shown to customers.</p>
 
-      <Card className="mt-6 p-6">
+      <Card className="mt-6 p-6 overflow-hidden">
         <h2 className="font-medium text-forest-900 mb-4">Add New Price Tier</h2>
-        <form onSubmit={handleCreate} className="grid sm:grid-cols-2 lg:grid-cols-4 gap-3">
+        <form onSubmit={handleCreate} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
           <select
             required
             value={form.serviceId}
             onChange={(e) => setForm({ ...form, serviceId: e.target.value })}
-            className="rounded-xl border border-gold-200 px-3 py-2 text-sm"
+            className="w-full min-w-0 max-w-full rounded-xl border border-gold-200 px-3 py-2 text-sm truncate"
           >
             <option value="">Select service</option>
             {services.map((s) => (
               <option key={s.id} value={s.id}>{s.categoryName} — {s.name}</option>
             ))}
           </select>
-          <input required placeholder="Length label" value={form.lengthLabel} onChange={(e) => setForm({ ...form, lengthLabel: e.target.value })} className="rounded-xl border border-gold-200 px-3 py-2 text-sm" />
-          <input required type="number" placeholder="Price (₹)" value={form.price} onChange={(e) => setForm({ ...form, price: e.target.value })} className="rounded-xl border border-gold-200 px-3 py-2 text-sm" />
-          <input required placeholder="What's included" value={form.whatsIncluded} onChange={(e) => setForm({ ...form, whatsIncluded: e.target.value })} className="rounded-xl border border-gold-200 px-3 py-2 text-sm" />
-          <Button type="submit" disabled={creating} className="lg:col-span-4 justify-self-start">
+          <input
+            required
+            placeholder="Length label"
+            value={form.lengthLabel}
+            onChange={(e) => setForm({ ...form, lengthLabel: e.target.value })}
+            className="w-full min-w-0 max-w-full rounded-xl border border-gold-200 px-3 py-2 text-sm"
+          />
+          <input
+            required
+            type="number"
+            placeholder="Price (₹)"
+            value={form.price}
+            onChange={(e) => setForm({ ...form, price: e.target.value })}
+            className="w-full min-w-0 max-w-full rounded-xl border border-gold-200 px-3 py-2 text-sm"
+          />
+          <input
+            required
+            placeholder="What's included"
+            value={form.whatsIncluded}
+            onChange={(e) => setForm({ ...form, whatsIncluded: e.target.value })}
+            className="w-full min-w-0 max-w-full rounded-xl border border-gold-200 px-3 py-2 text-sm"
+          />
+          <Button type="submit" disabled={creating} className="col-span-1 sm:col-span-2 lg:col-span-4 justify-self-start">
             {creating ? 'Adding…' : 'Add Price Tier'}
           </Button>
         </form>

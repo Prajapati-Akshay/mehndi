@@ -8,6 +8,7 @@ import {
 } from 'lucide-react';
 import { clearSession, getSession, type AdminUser } from '@/lib/auth';
 import { LogoMark } from '@/components/logo';
+import { NotificationBell } from '@/components/admin/notification-bell';
 
 const NAV = [
   { href: '/admin/dashboard', label: 'Dashboard', icon: LayoutDashboard },
@@ -26,13 +27,14 @@ export function AdminShell({ children }: { children: ReactNode }) {
   const [checked, setChecked] = useState(false);
 
   useEffect(() => {
-    const session = getSession();
-    if (!session) {
-      router.replace('/admin/login');
-      return;
-    }
-    setUser(session);
-    setChecked(true);
+    getSession().then((session) => {
+      if (!session) {
+        router.replace('/admin/login');
+        return;
+      }
+      setUser(session);
+      setChecked(true);
+    });
   }, [router]);
 
   if (!checked) return null;
@@ -64,8 +66,7 @@ export function AdminShell({ children }: { children: ReactNode }) {
           <p className="text-xs text-ivory/60 px-2">{user?.email}</p>
           <button
             onClick={() => {
-              clearSession();
-              router.replace('/admin/login');
+              clearSession().finally(() => router.replace('/admin/login'));
             }}
             className="mt-2 flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm text-ivory/70 hover:bg-forest-800/60 w-full"
           >
@@ -75,16 +76,21 @@ export function AdminShell({ children }: { children: ReactNode }) {
       </aside>
 
       <div className="flex-1 min-w-0">
-        <header className="lg:hidden flex items-center justify-between bg-forest-900 text-ivory px-4 py-4">
-          <p className="font-serif text-lg">Admin</p>
-          <button
-            onClick={() => {
-              clearSession();
-              router.replace('/admin/login');
-            }}
-          >
-            <LogOut className="h-4 w-4" />
-          </button>
+        <header className="flex items-center justify-between bg-forest-900 text-ivory px-4 py-4 lg:px-8 lg:py-3">
+          <p className="font-serif text-lg lg:hidden">Admin</p>
+          <div className="hidden lg:block" />
+          <div className="flex items-center gap-1">
+            {user && <NotificationBell adminId={user.id} />}
+            <button
+              onClick={() => {
+                clearSession().finally(() => router.replace('/admin/login'));
+              }}
+              className="lg:hidden flex h-9 w-9 items-center justify-center rounded-full text-ivory/80 hover:bg-forest-800/60"
+              aria-label="Logout"
+            >
+              <LogOut className="h-4 w-4" />
+            </button>
+          </div>
         </header>
         <nav className="lg:hidden flex gap-2 overflow-x-auto bg-forest-800 px-4 py-2">
           {NAV.map((item) => (

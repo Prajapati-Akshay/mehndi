@@ -67,14 +67,14 @@ export default function AdminServicesPage() {
       <h1 className="font-serif text-2xl text-forest-900">Services</h1>
       <p className="text-sm text-forest-800/60 mt-1">Manage the services offered under each category.</p>
 
-      <Card className="mt-6 p-6">
+      <Card className="mt-6 p-6 overflow-hidden">
         <h2 className="font-medium text-forest-900 mb-4">Add New Service</h2>
-        <form onSubmit={handleCreate} className="grid sm:grid-cols-3 gap-3">
+        <form onSubmit={handleCreate} className="grid grid-cols-1 sm:grid-cols-3 gap-3">
           <select
             required
             value={form.categoryId}
             onChange={(e) => setForm({ ...form, categoryId: e.target.value })}
-            className="rounded-xl border border-gold-200 px-3 py-2 text-sm"
+            className="w-full min-w-0 max-w-full rounded-xl border border-gold-200 px-3 py-2 text-sm truncate"
           >
             <option value="">Select category</option>
             {categories.map((c) => (
@@ -86,15 +86,15 @@ export default function AdminServicesPage() {
             placeholder="Service name"
             value={form.name}
             onChange={(e) => setForm({ ...form, name: e.target.value })}
-            className="rounded-xl border border-gold-200 px-3 py-2 text-sm"
+            className="w-full min-w-0 max-w-full rounded-xl border border-gold-200 px-3 py-2 text-sm"
           />
           <input
             placeholder="Description (optional)"
             value={form.description}
             onChange={(e) => setForm({ ...form, description: e.target.value })}
-            className="rounded-xl border border-gold-200 px-3 py-2 text-sm"
+            className="w-full min-w-0 max-w-full rounded-xl border border-gold-200 px-3 py-2 text-sm"
           />
-          <Button type="submit" disabled={creating} className="sm:col-span-3 justify-self-start">
+          <Button type="submit" disabled={creating} className="col-span-1 sm:col-span-3 justify-self-start">
             {creating ? 'Adding…' : 'Add Service'}
           </Button>
         </form>

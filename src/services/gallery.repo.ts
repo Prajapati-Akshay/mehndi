@@ -1,38 +1,35 @@
-import { db } from '@/lib/db';
-import { uid, nowIso } from '@/lib/utils';
 import type { DBGallery, GalleryItem } from '@/lib/types';
 
 export async function listGallery(activeOnly = true): Promise<GalleryItem[]> {
-  const rows = await db.gallery.orderBy('sortOrder').toArray();
-  const filtered = activeOnly ? rows.filter((r) => r.isActive) : rows;
-  return filtered.map((r) => ({ id: r.id, imageUrl: r.imageUrl, title: r.title, category: r.category }));
+  const res = await fetch(`/api/gallery?all=${!activeOnly}`, { cache: 'no-store' });
+  const { items } = await res.json();
+  return items.map((r: DBGallery) => ({ id: r.id, imageUrl: r.imageUrl, title: r.title, category: r.category }));
 }
 
 export async function listGalleryAdmin(): Promise<DBGallery[]> {
-  return db.gallery.orderBy('sortOrder').toArray();
+  const res = await fetch('/api/gallery?all=true', { cache: 'no-store' });
+  const { items } = await res.json();
+  return items;
 }
 
 export async function createGalleryItem(input: { imageUrl: string; title?: string | null; category?: string | null }): Promise<DBGallery> {
-  const now = nowIso();
-  const count = await db.gallery.count();
-  const item: DBGallery = {
-    id: uid(),
-    imageUrl: input.imageUrl,
-    title: input.title ?? null,
-    category: input.category ?? null,
-    sortOrder: count,
-    isActive: true,
-    createdAt: now,
-    updatedAt: now,
-  };
-  await db.gallery.add(item);
+  const res = await fetch('/api/gallery', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(input),
+  });
+  const { item } = await res.json();
   return item;
 }
 
 export async function updateGalleryItem(id: string, patch: Partial<Omit<DBGallery, 'id'>>): Promise<void> {
-  await db.gallery.update(id, { ...patch, updatedAt: nowIso() });
+  await fetch(`/api/gallery/${id}`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(patch),
+  });
 }
 
 export async function deleteGalleryItem(id: string): Promise<void> {
-  await db.gallery.delete(id);
+  await fetch(`/api/gallery/${id}`, { method: 'DELETE' });
 }
