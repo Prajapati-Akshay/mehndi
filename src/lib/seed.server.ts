@@ -13,6 +13,20 @@ type CategoryInput = { slug: string; name: string; description: string; services
 
 const CATALOG: CategoryInput[] = [
   {
+    slug: 'mandala-art',
+    name: 'Mandala Art',
+    description: 'Mandala belt designs for wrist and hand.',
+    services: [
+      {
+        name: 'Mandala Art',
+        tiers: [
+          { lengthLabel: '2 Finger Mandala Belt', price: 150, whatsIncluded: '2 Finger Mandala Belt' },
+          { lengthLabel: 'Mandala Art with Belt', price: 300, whatsIncluded: 'Mandala Art with Belt' },
+        ],
+      },
+    ],
+  },
+  {
     slug: 'arabic-mehndi',
     name: 'Arabic Mehndi',
     description: 'Bold flowing floral vines and heavy Arabic patterns.',
@@ -20,62 +34,23 @@ const CATALOG: CategoryInput[] = [
       {
         name: 'Arabic Mehndi',
         tiers: [
-          { lengthLabel: 'Palm Length', price: 200, whatsIncluded: '400 Heavy Arabic' },
-          { lengthLabel: '2 Finger above Palm / Wrist Length', price: 250, whatsIncluded: '600 Heavy Arabic' },
-          { lengthLabel: '4 Finger above Palm / Bangle Length', price: 300, whatsIncluded: '800 Heavy Arabic' },
-          { lengthLabel: '1/2 Hand / Half Hand', price: 350, whatsIncluded: '1000 Heavy Arabic' },
-          { lengthLabel: '3/4th Length', price: 400, whatsIncluded: '1500 Heavy Arabic' },
-          { lengthLabel: 'Elbow Length', price: 450, whatsIncluded: '1800 Heavy Arabic' },
+          { lengthLabel: 'Half Hand', price: 300, whatsIncluded: 'Arabic Half Hand' },
+          { lengthLabel: 'Full Hand', price: 500, whatsIncluded: 'Arabic Full Hand' },
         ],
       },
     ],
   },
   {
-    slug: 'designer-fancy-mehndi',
-    name: 'Designer / Fancy Mehndi',
-    description: 'Intricate mandala and fancy heavy designs.',
+    slug: 'sider-mehndi',
+    name: 'Sider Mehndi',
+    description: 'Sider style designs in multiple lengths.',
     services: [
       {
-        name: 'Designer / Fancy Mehndi',
+        name: 'Sider Mehndi',
         tiers: [
-          { lengthLabel: 'Palm Length', price: 250, whatsIncluded: 'Fancy/Mandala' },
-          { lengthLabel: '2 Finger above Palm / Wrist Length', price: 300, whatsIncluded: '700 Intricate Heavy design' },
-          { lengthLabel: '4 Finger above Palm / Bangle Length', price: 400, whatsIncluded: '1100 Intricate Heavy Designs' },
-          { lengthLabel: '1/2 Hand / Half Hand', price: 550, whatsIncluded: '1500 Intricate Heavy design' },
-        ],
-      },
-    ],
-  },
-  {
-    slug: 'indian-traditional',
-    name: 'Indian Traditional',
-    description: 'Classic Indian motifs with peacocks and elephants.',
-    services: [
-      {
-        name: 'Indian Traditional',
-        tiers: [
-          { lengthLabel: 'Palm Length', price: 350, whatsIncluded: 'Designer' },
-          { lengthLabel: '2 Finger above Palm / Wrist Length', price: 450, whatsIncluded: 'Heavy Designer' },
-          { lengthLabel: '4 Finger above Palm / Bangle Length', price: 500, whatsIncluded: 'Heavy Designer' },
-          { lengthLabel: '1/2 Hand / Half Hand', price: 550, whatsIncluded: 'With Peacock, Elephant' },
-          { lengthLabel: '3/4th Length', price: 650, whatsIncluded: 'With Peacock, Elephant' },
-          { lengthLabel: 'Elbow Length', price: 900, whatsIncluded: 'With Peacock, Elephant' },
-        ],
-      },
-    ],
-  },
-  {
-    slug: 'engagement-mehndi',
-    name: 'Engagement Mehndi',
-    description: 'Ring ceremony themed designs with figures.',
-    services: [
-      {
-        name: 'Engagement Mehndi',
-        tiers: [
-          { lengthLabel: '4 Finger above Palm / Bangle Length', price: 600, whatsIncluded: 'Basic design with ring ceremony figure (rings, name or letter)' },
-          { lengthLabel: '1/2 Hand / Half Hand', price: 800, whatsIncluded: 'Heavy with Peacock + elephant' },
-          { lengthLabel: '3/4th Length', price: 900, whatsIncluded: 'Heavy with Ring ceremony Figures' },
-          { lengthLabel: 'Elbow Length', price: 1200, whatsIncluded: 'Customised couple figure design' },
+          { lengthLabel: '4 Finger Sider', price: 400, whatsIncluded: '4 Finger Sider' },
+          { lengthLabel: 'Half Sider', price: 550, whatsIncluded: 'Half Sider' },
+          { lengthLabel: 'Full Sider', price: 900, whatsIncluded: 'Full Sider' },
         ],
       },
     ],
@@ -88,26 +63,20 @@ const CATALOG: CategoryInput[] = [
       {
         name: 'Bridal Mehndi',
         tiers: [
-          { lengthLabel: '1/2 Hand / Half Hand', price: 1000, whatsIncluded: 'Basic Bridal design with ankle length feet design' },
-          { lengthLabel: '3/4th Length', price: 1500, whatsIncluded: 'Basic figure kalash, ganpavesh with ankle length feet design' },
-          { lengthLabel: 'Elbow Length', price: 3000, whatsIncluded: '1 Bride 1 groom figure ankle length feet design' },
-          { lengthLabel: 'Elbow Length (Standing Figures)', price: 3500, whatsIncluded: '1 standing Bride 1 groom standing figure ankle length' },
-          { lengthLabel: 'Elbow Length (Intricate)', price: 4500, whatsIncluded: 'Intricate bride groom + Shiv Parvati / Radha Krishna / Vishnu Lakshmi figure' },
+          { lengthLabel: 'Bridal Mehndi', price: 4500, whatsIncluded: 'Full Bridal Mehndi' },
         ],
       },
     ],
   },
   {
-    slug: 'feet-mehndi',
-    name: 'Feet Mehndi',
-    description: 'Beautiful feet designs to complement any look.',
+    slug: 'engagement-mehndi',
+    name: 'Engagement Mehndi',
+    description: 'Ring ceremony themed designs with figures.',
     services: [
       {
-        name: 'Feet Mehndi',
+        name: 'Engagement Mehndi',
         tiers: [
-          { lengthLabel: '2 Finger above ankle length', price: 1000, whatsIncluded: 'Per figure extra' },
-          { lengthLabel: '4 Finger above ankle length', price: 1500, whatsIncluded: 'Per figure extra' },
-          { lengthLabel: 'Peacock elephant', price: 500, whatsIncluded: 'Per figure extra' },
+          { lengthLabel: 'Engagement Mehndi', price: 3500, whatsIncluded: 'Full Engagement Mehndi' },
         ],
       },
     ],
@@ -127,15 +96,15 @@ const GALLERY_ITEMS: { title: string; category: string | null; imageUrl: string 
   { title: 'Bridal Full Hand Floral', category: 'bridal-mehndi', imageUrl: '/gallery/bridal-full-hand-floral.jpg' },
   { title: 'Heavy Bridal Elbow Design', category: 'bridal-mehndi', imageUrl: '/gallery/bridal-heavy-elbow-dark.jpg' },
   { title: 'Ornate Peacock Bridal Design', category: 'bridal-mehndi', imageUrl: '/gallery/bridal-peacock-ornate.jpg' },
-  { title: 'Mandala Sleeve Design', category: 'designer-fancy-mehndi', imageUrl: '/gallery/designer-mandala-sleeve.jpg' },
-  { title: 'Fancy Palm Mandala', category: 'designer-fancy-mehndi', imageUrl: '/gallery/designer-palm-mandala-1.jpg' },
-  { title: 'Circular Palm Mandala', category: 'designer-fancy-mehndi', imageUrl: '/gallery/designer-palm-mandala-2.jpg' },
+  { title: 'Mandala Sleeve Design', category: 'mandala-art', imageUrl: '/gallery/designer-mandala-sleeve.jpg' },
+  { title: 'Fancy Palm Mandala', category: 'mandala-art', imageUrl: '/gallery/designer-palm-mandala-1.jpg' },
+  { title: 'Circular Palm Mandala', category: 'mandala-art', imageUrl: '/gallery/designer-palm-mandala-2.jpg' },
   { title: 'Ring Ceremony Design', category: 'engagement-mehndi', imageUrl: '/gallery/engagement-ring-ceremony.jpg' },
-  { title: 'Elephant & Lotus Feet Design', category: 'feet-mehndi', imageUrl: '/gallery/feet-elephants-lotus.jpg' },
-  { title: 'Flamingo Anklet Feet Design', category: 'feet-mehndi', imageUrl: '/gallery/feet-flamingo-anklet.jpg' },
-  { title: 'Peacock Anklet Feet Design', category: 'feet-mehndi', imageUrl: '/gallery/feet-mandala-anklet.jpg' },
-  { title: 'Traditional Elephant Design', category: 'indian-traditional', imageUrl: '/gallery/traditional-elephants-backhand.jpg' },
-  { title: 'Peacock & Elephant Traditional', category: 'indian-traditional', imageUrl: '/gallery/traditional-peacock-elephant.jpg' },
+  { title: 'Elephant & Lotus Feet Design', category: null, imageUrl: '/gallery/feet-elephants-lotus.jpg' },
+  { title: 'Flamingo Anklet Feet Design', category: null, imageUrl: '/gallery/feet-flamingo-anklet.jpg' },
+  { title: 'Peacock Anklet Feet Design', category: null, imageUrl: '/gallery/feet-mandala-anklet.jpg' },
+  { title: 'Traditional Elephant Design', category: null, imageUrl: '/gallery/traditional-elephants-backhand.jpg' },
+  { title: 'Peacock & Elephant Traditional', category: null, imageUrl: '/gallery/traditional-peacock-elephant.jpg' },
   ...Array.from({ length: 45 }, (_, i) => ({
     title: `Mehndi Design ${i + 1}`,
     category: null,

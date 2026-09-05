@@ -107,9 +107,15 @@ export default function HomePage() {
               <div><p className="font-serif text-3xl text-forest-900">5★</p><p className="text-xs text-forest-700/70 mt-1">Rated Service</p></div>
             </div>
           </div>
-          <div className="aspect-[4/5] rounded-3xl bg-gradient-to-br from-forest-100 via-cream to-gold-100 border border-gold-200 shadow-soft flex items-center justify-center overflow-hidden relative">
-            <MehndiMotif className="absolute h-[140%] w-[140%] opacity-20" />
-            <LogoMark size={120} className="relative" />
+          <div className="aspect-[4/5] rounded-3xl border border-gold-200 shadow-soft overflow-hidden relative">
+            <Image
+              src="/gallery/bridal-peacock-ornate.jpg"
+              alt="Bridal mehndi design by Mehndi By Dhara"
+              fill
+              sizes="(max-width: 1024px) 100vw, 50vw"
+              className="object-cover"
+              priority
+            />
           </div>
         </div>
       </section>
