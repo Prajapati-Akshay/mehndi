@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Bell } from 'lucide-react';
+import { Bell, Check, Sparkles, Inbox } from 'lucide-react';
 
 interface AdminNotification {
   id: string;
@@ -23,13 +23,25 @@ export function NotificationBell({ adminId }: { adminId: string }) {
   const containerRef = useRef<HTMLDivElement>(null);
 
   async function refreshCount() {
-    const res = await fetch(`/api/notifications/unread-count?recipientType=ADMIN&recipientId=${adminId}`, { cache: 'no-store' });
-    if (res.ok) setUnreadCount((await res.json()).count);
+    try {
+      const res = await fetch(`/api/notifications/unread-count?recipientType=ADMIN&recipientId=${adminId}`, {
+        cache: 'no-store',
+      });
+      if (res.ok) setUnreadCount((await res.json()).count);
+    } catch {
+      // ignore
+    }
   }
 
   async function loadNotifications() {
-    const res = await fetch(`/api/notifications?recipientType=ADMIN&recipientId=${adminId}`, { cache: 'no-store' });
-    if (res.ok) setNotifications((await res.json()).notifications);
+    try {
+      const res = await fetch(`/api/notifications?recipientType=ADMIN&recipientId=${adminId}`, {
+        cache: 'no-store',
+      });
+      if (res.ok) setNotifications((await res.json()).notifications);
+    } catch {
+      // ignore
+    }
   }
 
   useEffect(() => {
@@ -67,40 +79,80 @@ export function NotificationBell({ adminId }: { adminId: string }) {
     if (n.url) router.push(n.url);
   }
 
+  async function markAllAsRead() {
+    const unread = notifications.filter((n) => !n.isRead);
+    await Promise.all(
+      unread.map((n) =>
+        fetch(`/api/notifications/${n.id}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ isRead: true }),
+        })
+      )
+    );
+    setUnreadCount(0);
+    setNotifications((list) => list.map((item) => ({ ...item, isRead: true })));
+  }
+
   return (
     <div ref={containerRef} className="relative">
       <button
         onClick={toggleOpen}
-        aria-label="Notifications"
-        className="relative flex h-9 w-9 items-center justify-center rounded-full text-ivory/80 hover:bg-forest-800/60"
+        aria-label="Studio Notifications"
+        className="relative flex h-10 w-10 items-center justify-center rounded-xl border border-gold-200/90 bg-white text-forest-900 shadow-sm transition-all duration-200 hover:bg-gold-50/70 hover:border-gold-300 hover:text-gold-800"
       >
         <Bell className="h-4 w-4" />
         {unreadCount > 0 && (
-          <span className="absolute -top-0.5 -right-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-rose-500 px-1 text-[10px] font-semibold text-white">
+          <span className="absolute -top-1 -right-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-rose-600 px-1 text-[10px] font-bold text-white shadow-sm ring-2 ring-white animate-pulse">
             {unreadCount > 9 ? '9+' : unreadCount}
           </span>
         )}
       </button>
 
       {open && (
-        <div className="absolute right-0 z-50 mt-2 w-80 max-w-[90vw] rounded-2xl border border-gold-200 bg-white shadow-lg">
-          <div className="px-4 py-3 border-b border-gold-100">
-            <p className="text-sm font-medium text-forest-900">Notifications</p>
+        <div className="absolute right-0 z-50 mt-2.5 w-84 max-w-[92vw] rounded-2xl border border-gold-200/90 bg-white shadow-luxury backdrop-blur-xl animate-fade-in overflow-hidden">
+          {/* Header */}
+          <div className="px-4 py-3 border-b border-gold-100 flex items-center justify-between bg-gold-50/40">
+            <div className="flex items-center gap-1.5">
+              <Sparkles className="h-3.5 w-3.5 text-gold-600" />
+              <p className="text-xs font-bold uppercase tracking-wider text-forest-900">Notifications</p>
+            </div>
+            {unreadCount > 0 && (
+              <button
+                onClick={markAllAsRead}
+                className="text-[11px] text-gold-700 hover:text-gold-900 font-medium flex items-center gap-1 transition-colors"
+              >
+                <Check className="h-3 w-3" /> Mark all read
+              </button>
+            )}
           </div>
-          <div className="max-h-80 overflow-y-auto">
+
+          {/* List */}
+          <div className="max-h-80 overflow-y-auto divide-y divide-gold-50">
             {notifications.length === 0 && (
-              <p className="px-4 py-6 text-center text-sm text-forest-800/50">No notifications yet.</p>
+              <div className="px-4 py-8 text-center text-forest-800/50">
+                <Inbox className="mx-auto h-8 w-8 text-gold-300 mb-1.5 opacity-60" />
+                <p className="text-xs font-medium">No notifications yet</p>
+                <p className="text-[11px] text-forest-800/40 mt-0.5">Booking alerts will appear here</p>
+              </div>
             )}
             {notifications.map((n) => (
               <button
                 key={n.id}
                 onClick={() => handleClick(n)}
-                className={`block w-full text-left px-4 py-3 text-sm border-b border-gold-50 last:border-0 hover:bg-cream/60 ${
-                  n.isRead ? 'text-forest-800/60' : 'text-forest-900 font-medium bg-gold-50/40'
+                className={`block w-full text-left px-4 py-3 text-xs transition-colors hover:bg-gold-50/50 ${
+                  n.isRead ? 'text-forest-800/70 bg-white' : 'text-forest-950 font-semibold bg-gold-50/60'
                 }`}
               >
-                <p className="line-clamp-2">{n.message}</p>
-                <p className="mt-1 text-[11px] text-forest-800/40">{new Date(n.createdAt).toLocaleString('en-IN')}</p>
+                <p className="line-clamp-2 leading-relaxed">{n.message}</p>
+                <p className="mt-1 text-[10px] text-forest-800/50">
+                  {new Date(n.createdAt).toLocaleString('en-IN', {
+                    day: 'numeric',
+                    month: 'short',
+                    hour: 'numeric',
+                    minute: '2-digit',
+                  })}
+                </p>
               </button>
             ))}
           </div>

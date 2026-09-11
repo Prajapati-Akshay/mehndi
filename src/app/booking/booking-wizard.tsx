@@ -2,7 +2,10 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { Check, ChevronLeft, ChevronRight, Loader2, Minus, Plus } from 'lucide-react';
+import {
+  Check, ChevronLeft, ChevronRight, Loader2, Minus, Plus,
+  Sparkles, Calendar, Clock, User, FileText, CheckCircle2, ShieldCheck
+} from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { formatINR } from '@/lib/utils';
@@ -11,8 +14,16 @@ import { listAvailability } from '@/services/availability.repo';
 import { createBooking, BookingConflictError, BookingValidationError } from '@/services/bookings.repo';
 import { calculateBookingAmounts } from '@/domain/pricing';
 
-const STEPS = ['Service', 'Package', 'People', 'Date & Time', 'Your Details', 'Summary'];
-const DEFAULT_SLOTS = ['10:00-11:00', '11:30-12:30', '14:00-15:00', '15:30-16:30', '17:00-18:00'];
+const STEPS = [
+  { label: 'Style', icon: Sparkles },
+  { label: 'Package', icon: FileText },
+  { label: 'Guests', icon: User },
+  { label: 'Date & Time', icon: Calendar },
+  { label: 'Details', icon: User },
+  { label: 'Summary', icon: CheckCircle2 },
+];
+
+const DEFAULT_SLOTS = ['10:00-11:00', '11:30-12:30', '14:00-15:00', '15:30-16:30', '17:00-18:00', '18:30-19:30'];
 
 interface CustomerForm {
   fullName: string;
@@ -55,12 +66,17 @@ export function BookingWizard({ categories }: { categories: ServiceCategory[] })
             setCategoryId(cat.id);
             setServiceId(svc.id);
             setPricingId(pricingParam);
+            setStep(2); // Jump to guests step if pricing tier is pre-selected
           }
         }
       }
     } else if (categoryParam) {
       const cat = categories.find((c) => c.slug === categoryParam);
-      if (cat) setCategoryId(cat.id);
+      if (cat) {
+        setCategoryId(cat.id);
+        setServiceId(cat.services[0]?.id ?? '');
+        setStep(1);
+      }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -99,7 +115,7 @@ export function BookingWizard({ categories }: { categories: ServiceCategory[] })
   }
 
   const canProceed = [
-    !!serviceId,
+    !!categoryId,
     !!pricingId,
     numberOfPeople >= 1,
     !!date && !!time && !isDateBlocked,
@@ -146,342 +162,422 @@ export function BookingWizard({ categories }: { categories: ServiceCategory[] })
   }
 
   return (
-    <div className="mt-14 max-w-3xl mx-auto">
-      <ol className="flex items-center justify-between mb-10 gap-1">
-        {STEPS.map((label, i) => (
-          <li key={label} className="flex-1 flex flex-col items-center text-center">
-            <div
-              className={`h-8 w-8 sm:h-9 sm:w-9 rounded-full flex items-center justify-center text-xs sm:text-sm font-medium border-2 ${
-                i < step
-                  ? 'bg-forest-800 border-forest-800 text-ivory'
-                  : i === step
-                  ? 'border-gold-500 text-gold-600'
-                  : 'border-gold-200 text-forest-800/40'
-              }`}
-            >
-              {i < step ? <Check className="h-4 w-4" /> : i + 1}
-            </div>
-            <span className="mt-2 text-[10px] sm:text-xs text-forest-800/60 hidden sm:block">{label}</span>
-          </li>
-        ))}
-      </ol>
+    <div className="mt-10 max-w-3xl mx-auto">
+      {/* Sleek Step Progress Header */}
+      <div className="mb-10 rounded-2xl bg-white/80 p-4 border border-gold-200/80 shadow-sm backdrop-blur-md">
+        <ol className="flex items-center justify-between gap-1">
+          {STEPS.map((s, i) => (
+            <li key={s.label} className="flex-1 flex flex-col items-center text-center relative">
+              <div
+                className={`h-9 w-9 sm:h-10 sm:w-10 rounded-full flex items-center justify-center text-xs sm:text-sm font-bold transition-all duration-300 ${
+                  i < step
+                    ? 'bg-forest-900 text-ivory shadow-sm'
+                    : i === step
+                    ? 'bg-gold-400 text-forest-950 ring-4 ring-gold-200 shadow-gold'
+                    : 'bg-gold-50 text-forest-800/40 border border-gold-200'
+                }`}
+              >
+                {i < step ? <Check className="h-4 w-4 text-gold-300 stroke-[3]" /> : i + 1}
+              </div>
+              <span className={`mt-2 text-[10px] sm:text-xs font-medium hidden sm:block ${
+                i === step ? 'text-forest-950 font-bold' : 'text-forest-800/60'
+              }`}>
+                {s.label}
+              </span>
+            </li>
+          ))}
+        </ol>
+      </div>
 
-      <Card className="p-6 sm:p-8">
+      <div className="rounded-3xl border border-gold-300/80 bg-white/95 p-6 sm:p-10 shadow-luxury backdrop-blur-md">
+        {/* STEP 0: CHOOSE CATEGORY */}
         {step === 0 && (
-          <div>
-            <h2 className="font-serif text-xl text-forest-900 mb-6">Choose a Service Category</h2>
-            <div className="grid gap-3 sm:grid-cols-2">
-              {categories.map((cat) => (
-                <button
-                  key={cat.id}
-                  onClick={() => {
-                    setCategoryId(cat.id);
-                    setServiceId(cat.services[0]?.id ?? '');
-                    setPricingId('');
-                  }}
-                  className={`text-left p-4 rounded-xl border-2 transition-colors ${
-                    categoryId === cat.id ? 'border-gold-500 bg-gold-50' : 'border-gold-100 hover:border-gold-300'
-                  }`}
-                >
-                  <p className="font-medium text-forest-900">{cat.name}</p>
-                  <p className="text-xs text-forest-800/60 mt-1">{cat.description}</p>
-                </button>
-              ))}
+          <div className="space-y-6 animate-fade-in">
+            <div>
+              <span className="text-xs font-semibold uppercase tracking-widest text-gold-600">Step 1</span>
+              <h2 className="font-serif text-2xl sm:text-3xl font-bold text-forest-950 mt-1">Select a Mehndi Style</h2>
+              <p className="text-sm text-forest-800/70 mt-1">Choose the primary aesthetic for your appointment.</p>
+            </div>
+
+            <div className="grid gap-4 sm:grid-cols-2">
+              {categories.map((cat) => {
+                const isSelected = categoryId === cat.id;
+                return (
+                  <button
+                    key={cat.id}
+                    onClick={() => {
+                      setCategoryId(cat.id);
+                      setServiceId(cat.services[0]?.id ?? '');
+                      setPricingId('');
+                    }}
+                    className={`text-left p-5 rounded-2xl border-2 transition-all duration-300 cursor-pointer ${
+                      isSelected
+                        ? 'border-gold-500 bg-gold-50/70 shadow-gold'
+                        : 'border-gold-100 hover:border-gold-300 hover:bg-gold-50/30'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between">
+                      <p className="font-serif text-lg font-bold text-forest-950">{cat.name}</p>
+                      {isSelected && <CheckCircle2 className="h-5 w-5 text-gold-600" />}
+                    </div>
+                    <p className="text-xs text-forest-800/70 mt-2 leading-relaxed">{cat.description}</p>
+                  </button>
+                );
+              })}
             </div>
           </div>
         )}
 
+        {/* STEP 1: CHOOSE PACKAGE / LENGTH */}
         {step === 1 && service && (
-          <div>
-            <h2 className="font-serif text-xl text-forest-900 mb-6">Choose Length &amp; Package</h2>
-            <div className="space-y-3">
-              {service.pricingTiers.map((tier) => (
-                <button
-                  key={tier.id}
-                  onClick={() => setPricingId(tier.id)}
-                  className={`w-full text-left p-4 rounded-xl border-2 flex items-center justify-between gap-4 transition-colors ${
-                    pricingId === tier.id ? 'border-gold-500 bg-gold-50' : 'border-gold-100 hover:border-gold-300'
-                  }`}
-                >
-                  <div>
-                    <p className="font-medium text-forest-900">{tier.lengthLabel}</p>
-                    <p className="text-xs text-forest-800/60 mt-1">{tier.whatsIncluded}</p>
-                  </div>
-                  <span className="text-gold-600 font-semibold whitespace-nowrap">{formatINR(tier.price)}/person</span>
-                </button>
-              ))}
+          <div className="space-y-6 animate-fade-in">
+            <div>
+              <span className="text-xs font-semibold uppercase tracking-widest text-gold-600">Step 2</span>
+              <h2 className="font-serif text-2xl sm:text-3xl font-bold text-forest-950 mt-1">Select Length &amp; Coverage</h2>
+              <p className="text-sm text-forest-800/70 mt-1">Choose the hand or feet coverage package you prefer.</p>
+            </div>
+
+            <div className="space-y-3.5">
+              {service.pricingTiers.map((tier) => {
+                const isSelected = pricingId === tier.id;
+                return (
+                  <button
+                    key={tier.id}
+                    onClick={() => setPricingId(tier.id)}
+                    className={`w-full text-left p-5 rounded-2xl border-2 flex flex-col sm:flex-row sm:items-center justify-between gap-4 transition-all duration-300 cursor-pointer ${
+                      isSelected
+                        ? 'border-gold-500 bg-gold-50/70 shadow-gold'
+                        : 'border-gold-100 hover:border-gold-300 hover:bg-gold-50/30'
+                    }`}
+                  >
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <p className="font-serif text-base font-bold text-forest-950">{tier.lengthLabel}</p>
+                        {isSelected && <CheckCircle2 className="h-4 w-4 text-gold-600" />}
+                      </div>
+                      <p className="text-xs text-forest-800/70 mt-1">{tier.whatsIncluded}</p>
+                    </div>
+                    <div className="text-left sm:text-right">
+                      <span className="font-serif text-xl font-bold text-gold-600">{formatINR(tier.price)}</span>
+                      <span className="text-[11px] text-forest-700/60 block">per person</span>
+                    </div>
+                  </button>
+                );
+              })}
             </div>
           </div>
         )}
 
+        {/* STEP 2: NUMBER OF GUESTS */}
         {step === 2 && pricing && amounts && (
-          <div>
-            <h2 className="font-serif text-xl text-forest-900 mb-6">Number of People</h2>
-            <p className="text-sm text-forest-800/70 mb-2">Price per Person</p>
-            <p className="text-2xl font-serif text-forest-900">{formatINR(pricing.price)}</p>
+          <div className="space-y-6 animate-fade-in">
+            <div>
+              <span className="text-xs font-semibold uppercase tracking-widest text-gold-600">Step 3</span>
+              <h2 className="font-serif text-2xl sm:text-3xl font-bold text-forest-950 mt-1">Number of People</h2>
+              <p className="text-sm text-forest-800/70 mt-1">How many people will be getting this mehndi package?</p>
+            </div>
 
-            <div className="mt-6 flex items-center gap-4">
+            <div className="flex items-center gap-5 pt-2">
               <button
                 type="button"
                 onClick={() => adjustPeople(-1)}
                 disabled={numberOfPeople <= 1}
                 aria-label="Decrease number of people"
-                className="h-11 w-11 rounded-full border-2 border-gold-300 flex items-center justify-center text-forest-800 disabled:opacity-40"
+                className="h-12 w-12 rounded-full border-2 border-gold-300 flex items-center justify-center text-forest-900 bg-white hover:bg-gold-50 transition-colors disabled:opacity-30 disabled:pointer-events-none cursor-pointer"
               >
-                <Minus className="h-4 w-4" />
+                <Minus className="h-5 w-5" />
               </button>
-              <input
-                type="number"
-                min={1}
-                value={numberOfPeople}
-                onChange={(e) => setNumberOfPeople(Math.max(1, Number(e.target.value) || 1))}
-                className="w-20 text-center rounded-xl border border-gold-200 px-3 py-2.5 text-lg font-medium"
-              />
+              <span className="w-16 text-center font-serif text-3xl font-bold text-forest-950">
+                {numberOfPeople}
+              </span>
               <button
                 type="button"
                 onClick={() => adjustPeople(1)}
                 aria-label="Increase number of people"
-                className="h-11 w-11 rounded-full border-2 border-gold-300 flex items-center justify-center text-forest-800"
+                className="h-12 w-12 rounded-full border-2 border-gold-300 flex items-center justify-center text-forest-900 bg-white hover:bg-gold-50 transition-colors cursor-pointer"
               >
-                <Plus className="h-4 w-4" />
+                <Plus className="h-5 w-5" />
               </button>
             </div>
 
-            <div className="mt-8 rounded-xl bg-cream p-5 space-y-2 text-sm">
-              <div className="flex justify-between"><span className="text-forest-800/60">Price per Person</span><span className="font-medium text-forest-900">{formatINR(pricing.price)}</span></div>
-              <div className="flex justify-between"><span className="text-forest-800/60">Number of People</span><span className="font-medium text-forest-900">{numberOfPeople}</span></div>
-              <div className="flex justify-between border-t border-gold-200 pt-2"><span className="text-forest-800/60">Total</span><span className="font-semibold text-forest-900">{formatINR(amounts.totalAmount)}</span></div>
-              <div className="flex justify-between"><span className="text-forest-800/60">50% Advance</span><span className="font-semibold text-gold-600">{formatINR(amounts.advanceAmount)}</span></div>
-              <div className="flex justify-between"><span className="text-forest-800/60">Remaining</span><span className="font-medium text-forest-900">{formatINR(amounts.remainingAmount)}</span></div>
+            {/* Live Pricing Breakdown */}
+            <div className="mt-8 rounded-2xl bg-gradient-to-tr from-cream via-ivory to-gold-50/70 p-6 border border-gold-200/90 space-y-3 text-sm">
+              <div className="flex justify-between text-forest-800/80">
+                <span>Selected Package ({pricing.lengthLabel})</span>
+                <span className="font-medium text-forest-950">{formatINR(pricing.price)} × {numberOfPeople}</span>
+              </div>
+              <div className="flex justify-between border-t border-gold-200/80 pt-3 text-base">
+                <span className="font-semibold text-forest-950">Total Amount</span>
+                <span className="font-serif font-bold text-forest-950">{formatINR(amounts.totalAmount)}</span>
+              </div>
+              <div className="flex justify-between text-sm text-gold-700 bg-gold-100/60 p-2.5 rounded-xl border border-gold-300/40">
+                <span className="font-semibold">50% Advance (to confirm slot)</span>
+                <span className="font-serif font-bold text-base">{formatINR(amounts.advanceAmount)}</span>
+              </div>
+              <div className="flex justify-between text-xs text-forest-800/70 pt-1">
+                <span>Remaining on appointment day</span>
+                <span className="font-medium text-forest-950">{formatINR(amounts.remainingAmount)}</span>
+              </div>
             </div>
           </div>
         )}
 
+        {/* STEP 3: DATE & TIME */}
         {step === 3 && (
-          <div>
-            <h2 className="font-serif text-xl text-forest-900 mb-6">Select Date &amp; Time</h2>
-            <label className="text-sm font-medium text-forest-900">Appointment Date</label>
-            <input
-              type="date"
-              min={minDate}
-              value={date}
-              onChange={(e) => {
-                setDate(e.target.value);
-                setTime('');
-                setTimeSlotId(undefined);
-              }}
-              className="mt-1 w-full rounded-xl border border-gold-200 px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-gold-300"
-            />
+          <div className="space-y-6 animate-fade-in">
+            <div>
+              <span className="text-xs font-semibold uppercase tracking-widest text-gold-600">Step 4</span>
+              <h2 className="font-serif text-2xl sm:text-3xl font-bold text-forest-950 mt-1">Select Date &amp; Time Slot</h2>
+              <p className="text-sm text-forest-800/70 mt-1">Choose when you would like Dhara to apply your mehndi.</p>
+            </div>
+
+            <div>
+              <label className="text-sm font-semibold text-forest-950">Appointment Date</label>
+              <input
+                type="date"
+                min={minDate}
+                value={date}
+                onChange={(e) => {
+                  setDate(e.target.value);
+                  setTime('');
+                  setTimeSlotId(undefined);
+                }}
+                className="mt-2 w-full rounded-2xl border border-gold-300 bg-white px-4 py-3.5 text-sm font-medium text-forest-950 shadow-sm focus:outline-none focus:ring-2 focus:ring-gold-400"
+              />
+            </div>
+
             {isDateBlocked && (
-              <p className="mt-2 text-sm text-rose-600">This date is unavailable. Please choose another date.</p>
+              <p className="text-sm font-medium text-rose-600 bg-rose-50 p-3 rounded-xl border border-rose-200">
+                This date is fully booked or unavailable. Please choose another date.
+              </p>
             )}
+
             {date && !isDateBlocked && (
-              <div className="mt-6">
-                <p className="text-sm font-medium text-forest-900 mb-3">Available Time Slots</p>
+              <div className="pt-2">
+                <p className="text-sm font-semibold text-forest-950 mb-3">Available Time Slots</p>
                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                   {(matchedAvailability ? slotsForDate.map((s) => `${s.startTime}-${s.endTime}`) : DEFAULT_SLOTS).map(
                     (label) => {
                       const slot = matchedAvailability?.timeSlots.find((s) => `${s.startTime}-${s.endTime}` === label);
+                      const isSelected = time === label;
                       return (
                         <button
                           key={label}
                           onClick={() => selectSlot(label, slot?.id)}
-                          className={`p-3 rounded-xl border-2 text-sm font-medium transition-colors ${
-                            time === label ? 'border-gold-500 bg-gold-50 text-forest-900' : 'border-gold-100 hover:border-gold-300 text-forest-800/80'
+                          className={`p-3.5 rounded-2xl border-2 text-sm font-medium transition-all duration-300 cursor-pointer ${
+                            isSelected
+                              ? 'border-gold-500 bg-gold-400 text-forest-950 font-bold shadow-gold'
+                              : 'border-gold-100 bg-white hover:border-gold-300 hover:bg-gold-50/40 text-forest-800'
                           }`}
                         >
+                          <Clock className="h-3.5 w-3.5 inline mr-1.5 opacity-60" />
                           {label}
                         </button>
                       );
                     },
                   )}
                 </div>
-                {matchedAvailability && slotsForDate.length === 0 && (
-                  <p className="mt-3 text-sm text-rose-600">All slots are booked for this date. Please pick another date.</p>
-                )}
               </div>
             )}
           </div>
         )}
 
+        {/* STEP 4: CUSTOMER DETAILS */}
         {step === 4 && (
-          <div>
-            <h2 className="font-serif text-xl text-forest-900 mb-6">Your Details</h2>
+          <div className="space-y-6 animate-fade-in">
+            <div>
+              <span className="text-xs font-semibold uppercase tracking-widest text-gold-600">Step 5</span>
+              <h2 className="font-serif text-2xl sm:text-3xl font-bold text-forest-950 mt-1">Contact &amp; Event Details</h2>
+              <p className="text-sm text-forest-800/70 mt-1">Please provide your details for appointment coordination.</p>
+            </div>
+
             <div className="grid sm:grid-cols-2 gap-4">
               <div className="sm:col-span-2">
-                <label className="text-sm font-medium text-forest-900">Full Name</label>
+                <label className="text-xs font-semibold uppercase tracking-wider text-forest-900">Full Name *</label>
                 <input
                   value={customer.fullName}
                   onChange={(e) => setCustomer({ ...customer, fullName: e.target.value })}
-                  className="mt-1 w-full rounded-xl border border-gold-200 px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-gold-300"
+                  placeholder="e.g. Ananya Patel"
+                  className="mt-1.5 w-full rounded-2xl border border-gold-300 bg-white px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-gold-400"
                 />
               </div>
+
               <div>
-                <label className="text-sm font-medium text-forest-900">Phone Number</label>
+                <label className="text-xs font-semibold uppercase tracking-wider text-forest-900">Phone Number *</label>
                 <input
                   value={customer.phone}
                   onChange={(e) => setCustomer({ ...customer, phone: e.target.value })}
                   placeholder="10-digit mobile number"
-                  className="mt-1 w-full rounded-xl border border-gold-200 px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-gold-300"
+                  className="mt-1.5 w-full rounded-2xl border border-gold-300 bg-white px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-gold-400"
                 />
               </div>
+
               <div>
-                <label className="text-sm font-medium text-forest-900">Email (optional)</label>
+                <label className="text-xs font-semibold uppercase tracking-wider text-forest-900">Email (Optional)</label>
                 <input
                   type="email"
                   value={customer.email}
                   onChange={(e) => setCustomer({ ...customer, email: e.target.value })}
-                  className="mt-1 w-full rounded-xl border border-gold-200 px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-gold-300"
+                  placeholder="name@example.com"
+                  className="mt-1.5 w-full rounded-2xl border border-gold-300 bg-white px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-gold-400"
                 />
               </div>
-              <div className="sm:col-span-2 flex items-center gap-2">
+
+              <div className="sm:col-span-2 flex items-center gap-2.5 py-1">
                 <input
                   id="sameAsPhone"
                   type="checkbox"
                   checked={sameAsPhone}
                   onChange={(e) => setSameAsPhone(e.target.checked)}
-                  className="h-4 w-4"
+                  className="h-4 w-4 rounded text-gold-600 focus:ring-gold-400 cursor-pointer"
                 />
-                <label htmlFor="sameAsPhone" className="text-sm text-forest-800/80">
-                  WhatsApp number is the same as phone number
+                <label htmlFor="sameAsPhone" className="text-sm text-forest-800/90 cursor-pointer">
+                  WhatsApp number is identical to Phone Number
                 </label>
               </div>
+
               {!sameAsPhone && (
                 <div className="sm:col-span-2">
-                  <label className="text-sm font-medium text-forest-900">WhatsApp Number</label>
+                  <label className="text-xs font-semibold uppercase tracking-wider text-forest-900">WhatsApp Number *</label>
                   <input
                     value={customer.whatsappNumber}
                     onChange={(e) => setCustomer({ ...customer, whatsappNumber: e.target.value })}
-                    className="mt-1 w-full rounded-xl border border-gold-200 px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-gold-300"
+                    placeholder="WhatsApp contact number"
+                    className="mt-1.5 w-full rounded-2xl border border-gold-300 bg-white px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-gold-400"
                   />
                 </div>
               )}
+
               <div className="sm:col-span-2">
-                <label className="text-sm font-medium text-forest-900">Address (optional)</label>
-                <input
-                  value={customer.address}
-                  onChange={(e) => setCustomer({ ...customer, address: e.target.value })}
-                  className="mt-1 w-full rounded-xl border border-gold-200 px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-gold-300"
-                />
-              </div>
-              <div className="sm:col-span-2">
-                <label className="text-sm font-medium text-forest-900">Event Type</label>
+                <label className="text-xs font-semibold uppercase tracking-wider text-forest-900">Event Type (Optional)</label>
                 <input
                   value={customer.eventType}
                   onChange={(e) => setCustomer({ ...customer, eventType: e.target.value })}
-                  placeholder="Wedding, Engagement, Party…"
-                  className="mt-1 w-full rounded-xl border border-gold-200 px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-gold-300"
+                  placeholder="Wedding, Engagement, Sangeet, Festival, Party…"
+                  className="mt-1.5 w-full rounded-2xl border border-gold-300 bg-white px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-gold-400"
                 />
               </div>
+
               <div className="sm:col-span-2">
-                <label className="text-sm font-medium text-forest-900">Notes / Special Requirements</label>
+                <label className="text-xs font-semibold uppercase tracking-wider text-forest-900">Event Address / Venue (Optional)</label>
+                <input
+                  value={customer.address}
+                  onChange={(e) => setCustomer({ ...customer, address: e.target.value })}
+                  placeholder="Home address or venue location"
+                  className="mt-1.5 w-full rounded-2xl border border-gold-300 bg-white px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-gold-400"
+                />
+              </div>
+
+              <div className="sm:col-span-2">
+                <label className="text-xs font-semibold uppercase tracking-wider text-forest-900">Special Notes / Custom Motifs</label>
                 <textarea
                   value={customer.notes}
                   onChange={(e) => setCustomer({ ...customer, notes: e.target.value })}
                   rows={3}
-                  className="mt-1 w-full rounded-xl border border-gold-200 px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-gold-300"
+                  placeholder="E.g. want bride & groom portrait, peacock motifs, specific hashtag…"
+                  className="mt-1.5 w-full rounded-2xl border border-gold-300 bg-white px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-gold-400"
                 />
               </div>
             </div>
           </div>
         )}
 
+        {/* STEP 5: REVIEW & SUMMARY */}
         {step === 5 && pricing && service && category && amounts && (
-          <div>
-            <h2 className="font-serif text-xl text-forest-900 mb-6">Booking Summary</h2>
-            <dl className="divide-y divide-gold-100 text-sm">
-              {[
-                ['Service', `${category.name} — ${service.name}`],
-                ['Package', pricing.lengthLabel],
-                ['Date', date],
-                ['Time', time],
-                ['Name', customer.fullName],
-                ['Phone', customer.phone],
-              ].map(([label, value]) => (
-                <div key={label} className="flex justify-between py-2.5">
-                  <dt className="text-forest-800/60">{label}</dt>
-                  <dd className="font-medium text-forest-900">{value}</dd>
-                </div>
-              ))}
-              <div className="flex justify-between py-2.5">
-                <dt className="text-forest-800/60">Price per Person</dt>
-                <dd className="font-medium text-forest-900">{formatINR(pricing.price)}</dd>
-              </div>
-              <div className="flex justify-between py-2.5">
-                <dt className="text-forest-800/60">Number of People</dt>
-                <dd className="font-medium text-forest-900">{numberOfPeople}</dd>
-              </div>
-              <div className="flex justify-between py-2.5">
-                <dt className="text-forest-800/60">Total Amount</dt>
-                <dd className="font-medium text-forest-900">{formatINR(amounts.totalAmount)}</dd>
-              </div>
-              <div className="flex justify-between py-2.5">
-                <dt className="text-forest-800/60">50% Advance (payable to confirm)</dt>
-                <dd className="font-semibold text-gold-600">{formatINR(amounts.advanceAmount)}</dd>
-              </div>
-              <div className="flex justify-between py-2.5">
-                <dt className="text-forest-800/60">Remaining (on appointment day)</dt>
-                <dd className="font-medium text-forest-900">{formatINR(amounts.remainingAmount)}</dd>
-              </div>
-            </dl>
-
-            <div className="mt-6 rounded-xl bg-cream p-4 text-xs text-forest-800/70 space-y-1">
-              <p>Travel charges are additional. Booking confirmed only after 50% advance payment.</p>
-              <p>Please complete waxing/skincare at least 2 days before your appointment.</p>
-              <p>Changes after confirmation may incur additional charges.</p>
+          <div className="space-y-6 animate-fade-in">
+            <div>
+              <span className="text-xs font-semibold uppercase tracking-widest text-gold-600">Step 6</span>
+              <h2 className="font-serif text-2xl sm:text-3xl font-bold text-forest-950 mt-1">Review &amp; Confirm</h2>
+              <p className="text-sm text-forest-800/70 mt-1">Please verify all appointment details before finalizing.</p>
             </div>
 
-            <label className="mt-6 flex items-start gap-3">
+            <div className="rounded-2xl border border-gold-200 bg-cream/30 p-5 divide-y divide-gold-100 text-sm">
+              <div className="flex justify-between py-2.5"><span className="text-forest-800/70">Selected Style</span><span className="font-semibold text-forest-950">{category.name} — {service.name}</span></div>
+              <div className="flex justify-between py-2.5"><span className="text-forest-800/70">Package</span><span className="font-semibold text-forest-950">{pricing.lengthLabel}</span></div>
+              <div className="flex justify-between py-2.5"><span className="text-forest-800/70">Date &amp; Time</span><span className="font-semibold text-forest-950">{date} at {time}</span></div>
+              <div className="flex justify-between py-2.5"><span className="text-forest-800/70">Customer Name</span><span className="font-semibold text-forest-950">{customer.fullName}</span></div>
+              <div className="flex justify-between py-2.5"><span className="text-forest-800/70">Phone Number</span><span className="font-semibold text-forest-950">{customer.phone}</span></div>
+              <div className="flex justify-between py-2.5"><span className="text-forest-800/70">Number of Guests</span><span className="font-semibold text-forest-950">{numberOfPeople}</span></div>
+              <div className="flex justify-between py-2.5 text-base border-t border-gold-200 font-bold"><span className="text-forest-950">Total Amount</span><span className="text-forest-950">{formatINR(amounts.totalAmount)}</span></div>
+              <div className="flex justify-between py-2.5 bg-gold-100/70 px-3 rounded-xl border border-gold-300 text-gold-800 font-semibold"><span className="text-gold-900">50% Advance Payable to Confirm</span><span className="font-serif text-lg">{formatINR(amounts.advanceAmount)}</span></div>
+            </div>
+
+            <div className="p-4 rounded-2xl bg-forest-900 text-ivory text-xs space-y-1.5">
+              <div className="flex items-center gap-1.5 text-gold-300 font-semibold">
+                <ShieldCheck className="h-4 w-4" />
+                <span>Our Booking Promise</span>
+              </div>
+              <p>Your appointment slot will be held securely. Dhara will reach out directly on WhatsApp to confirm advance payment details.</p>
+            </div>
+
+            <label className="flex items-start gap-3 pt-2 cursor-pointer">
               <input
                 type="checkbox"
                 checked={termsAccepted}
                 onChange={(e) => setTermsAccepted(e.target.checked)}
-                className="mt-1 h-4 w-4"
+                className="mt-1 h-4 w-4 rounded text-gold-600 focus:ring-gold-400"
               />
-              <span className="text-sm text-forest-800/80">
-                I have read and accept the{' '}
-                <a href="/terms" target="_blank" className="text-gold-600 underline">
-                  Booking Terms &amp; Conditions
+              <span className="text-xs sm:text-sm text-forest-800/90 leading-relaxed">
+                I have read and agree to the{' '}
+                <a href="/terms" target="_blank" className="font-semibold text-gold-600 underline">
+                  Booking Terms &amp; Policies
                 </a>
                 .
               </span>
             </label>
 
             {error && (
-              <div className="mt-4 rounded-xl bg-rose-50 border border-rose-200 p-3">
-                <p className="text-sm text-rose-700">{error}</p>
+              <div className="rounded-2xl bg-rose-50 border border-rose-200 p-4 text-sm text-rose-700">
+                {error}
               </div>
             )}
           </div>
         )}
 
-        <div className="mt-8 flex justify-between">
+        {/* Navigation Buttons */}
+        <div className="mt-10 pt-6 border-t border-gold-100 flex items-center justify-between gap-4">
           <Button
             variant="ghost"
             onClick={() => setStep((s) => Math.max(0, s - 1))}
             disabled={step === 0 || submitting}
+            className="gap-1"
           >
             <ChevronLeft className="h-4 w-4" /> Back
           </Button>
+
           {step < STEPS.length - 1 ? (
-            <Button onClick={() => setStep((s) => s + 1)} disabled={!canProceed[step]}>
-              Next <ChevronRight className="h-4 w-4" />
+            <Button
+              variant="luxury"
+              onClick={() => setStep((s) => s + 1)}
+              disabled={!canProceed[step]}
+              className="gap-2 px-7"
+            >
+              <span>Continue</span>
+              <ChevronRight className="h-4 w-4" />
             </Button>
           ) : (
-            <Button onClick={handleSubmit} disabled={!canProceed[5] || submitting}>
+            <Button
+              variant="luxury"
+              onClick={handleSubmit}
+              disabled={!canProceed[5] || submitting}
+              className="gap-2 px-8 shadow-luxury"
+            >
               {submitting ? (
                 <>
-                  <Loader2 className="h-4 w-4 animate-spin" /> Confirming Booking…
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  <span>Processing...</span>
                 </>
               ) : (
                 <>
-                  <Check className="h-4 w-4" /> Confirm Booking
+                  <Check className="h-4 w-4" />
+                  <span>Confirm Booking</span>
                 </>
               )}
             </Button>
           )}
         </div>
-      </Card>
+      </div>
     </div>
   );
 }
+

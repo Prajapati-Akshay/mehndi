@@ -1,20 +1,20 @@
 import type { Metadata } from 'next';
 import { Playfair_Display, Inter } from 'next/font/google';
-import { Header } from '@/components/header';
-import { Footer } from '@/components/footer';
-import { WhatsAppFloat } from '@/components/whatsapp-float';
+import { SiteFrame } from '@/components/site-frame';
 import { PostHogProvider } from '@/components/posthog-provider';
 import { PostHogPageView } from '@/components/posthog-pageview';
 import './globals.css';
 
 const heading = Playfair_Display({
   subsets: ['latin'],
+  style: ['normal', 'italic'],
   variable: '--font-heading',
   display: 'swap',
 });
 
 const body = Inter({
   subsets: ['latin'],
+  style: ['normal', 'italic'],
   variable: '--font-body',
   display: 'swap',
 });
@@ -34,10 +34,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body className="font-sans antialiased">
         <PostHogProvider>
           <PostHogPageView />
-          <Header />
-          <main>{children}</main>
-          <Footer />
-          <WhatsAppFloat />
+          <SiteFrame>{children}</SiteFrame>
         </PostHogProvider>
       </body>
     </html>

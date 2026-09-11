@@ -20,11 +20,16 @@ export default function BookingPage() {
   if (!loaded) return <PageLoader />;
 
   return (
-    <div className="container py-16 sm:py-20">
-      <div className="text-center max-w-2xl mx-auto">
-        <span className="text-gold-500 text-sm tracking-widest uppercase font-medium">Book Now</span>
-        <h1 className="section-heading mt-3">Reserve Your Mehndi Appointment</h1>
-        <p className="mt-4 text-forest-800/70">Follow the steps below — it only takes a minute.</p>
+    <div className="container py-16 sm:py-24">
+      <div className="text-center max-w-2xl mx-auto space-y-3">
+        <div className="inline-flex items-center gap-2 rounded-full border border-gold-300 bg-white/80 px-4 py-1.5 text-xs font-semibold uppercase tracking-widest text-gold-700 shadow-sm">
+          <span>Appointment Reservation</span>
+        </div>
+        <h1 className="section-heading">Reserve Your Mehndi Experience</h1>
+        <div className="gold-divider mt-2" />
+        <p className="text-forest-800/80 text-sm sm:text-base">
+          Select your desired package and preferred time slot. We guarantee focused personal attention for every client.
+        </p>
       </div>
 
       {categories.length === 0 ? (

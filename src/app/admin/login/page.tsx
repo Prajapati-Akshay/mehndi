@@ -6,7 +6,6 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { LogoMark } from '@/components/logo';
 import { getSession, login } from '@/lib/auth';
-import { SEED_ADMIN_EMAIL, SEED_ADMIN_PASSWORD } from '@/lib/demo-credentials';
 
 export default function AdminLoginPage() {
   const router = useRouter();
@@ -36,42 +35,41 @@ export default function AdminLoginPage() {
   }
 
   return (
-    <div className="min-h-[80vh] flex items-center justify-center bg-mehndi-pattern px-4">
-      <Card className="w-full max-w-md p-8">
+    <div className="min-h-[80vh] flex items-center justify-center bg-mehndi-pattern px-4 py-16">
+      <Card className="w-full max-w-md p-8 sm:p-10 border border-gold-300/80 shadow-luxury">
         <div className="text-center">
           <LogoMark size={48} className="mx-auto" />
-          <h1 className="mt-4 font-serif text-2xl text-forest-900">Admin Login</h1>
-          <p className="mt-1 text-sm text-forest-800/60">Mehndi By Dhara Admin Panel</p>
+          <h1 className="mt-4 font-serif text-2xl font-bold text-forest-950">Admin Portal</h1>
+          <p className="mt-1 text-xs text-forest-800/70">Mehndi By Dhara Management System</p>
         </div>
         <form onSubmit={handleSubmit} className="mt-8 space-y-4">
           <div>
-            <label className="text-sm font-medium text-forest-900">Email</label>
+            <label className="text-xs font-semibold uppercase tracking-wider text-forest-900">Email Address</label>
             <input
               type="email"
               required
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="mt-1 w-full rounded-xl border border-gold-200 px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-gold-300"
+              placeholder="admin@mehndibydhara.com"
+              className="mt-1.5 w-full rounded-2xl border border-gold-300 bg-white px-4 py-3 text-sm text-forest-950 focus:outline-none focus:ring-2 focus:ring-gold-400"
             />
           </div>
           <div>
-            <label className="text-sm font-medium text-forest-900">Password</label>
+            <label className="text-xs font-semibold uppercase tracking-wider text-forest-900">Password</label>
             <input
               type="password"
               required
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="mt-1 w-full rounded-xl border border-gold-200 px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-gold-300"
+              placeholder="••••••••••••"
+              className="mt-1.5 w-full rounded-2xl border border-gold-300 bg-white px-4 py-3 text-sm text-forest-950 focus:outline-none focus:ring-2 focus:ring-gold-400"
             />
           </div>
-          {error && <p className="text-sm text-rose-600">{error}</p>}
-          <Button type="submit" disabled={loading} className="w-full">
+          {error && <p className="text-sm text-rose-600 bg-rose-50 p-3 rounded-xl border border-rose-200">{error}</p>}
+          <Button type="submit" variant="luxury" disabled={loading} className="w-full py-3.5">
             {loading ? 'Signing in…' : 'Sign In'}
           </Button>
         </form>
-        <p className="mt-6 text-center text-xs text-forest-800/40">
-          Demo credentials: {SEED_ADMIN_EMAIL} / {SEED_ADMIN_PASSWORD}
-        </p>
       </Card>
     </div>
   );
